@@ -10,19 +10,29 @@ import feature_definitions
 import torch
 import torch.nn.functional as F
 import math
-import xml_gen
 import numpy as np
 from fractions import Fraction
+import torchaudio
+import analysis
 
 
-def load_data(audio) -> list:
+FFT_SIZE = 1024
+NUM_MELS = FFT_SIZE // 16
+
+
+def featurize(audio) -> list:
     """
     Loads an audio file and featurizes it
     :param audio: The audio to load
-    :return: The tokenized audio as a list of frame dictionaries 
     """
-    dataset = []
-    return dataset
+    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=1)
+    power_spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE)
+    melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=FFT_SIZE // 2 + 1)
+    audio["magnitude_spectrogram"] = spectrogram_transform(audio["audio"])
+    audio["power_spectrogram"] = power_spectrogram_transform(audio["audio"])
+    audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
+    # analysis.analyzer(audio)
+    del audio["magnitude_spectrogram"]  # We don't need the regular spectrum anymore - just the power spectrum
 
 
 def make_labels(x) -> list:
@@ -86,4 +96,5 @@ def retrieve_class_dictionary(prediction: tuple) -> dict:
     """
     note = {}
     return note
+
 
