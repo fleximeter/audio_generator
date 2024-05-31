@@ -6,7 +6,6 @@ Date: 12/17/23
 Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classification"
 """
 
-import numpy as np
 import torch.fft
 import sklearn.linear_model
 
@@ -16,18 +15,17 @@ def analyzer(audio):
     Runs a suite of analysis tools on a provided NumPy array of audio samples
     :param audio: An audio Tensor
     """
-    rfftfreqs = torch.fft.rfftfreq(audio["magnitude_spectrogram"].shape[-1], 1/audio["sample_rate"])
+    rfftfreqs = torch.fft.rfftfreq((audio["magnitude_spectrogram"].shape[-2] - 1) * 2, 1/audio["sample_rate"])
     audio['pitch'] = None
     # results['midi'] = midi_estimation_from_pitch(results['pitch'])
     audio['spectral_centroid'] = spectral_centroid(audio["magnitude_spectrogram"], rfftfreqs)
     audio['spectral_entropy'] = spectral_entropy(audio["power_spectrogram"])
     audio['spectral_flatness'] = spectral_flatness(audio["magnitude_spectrogram"])
-    audio['spectral_slope'] = spectral_slope(audio["magnitude_spectrogram"], rfftfreqs)
+    audio['spectral_slope'], audio['spectral_y_int'] = spectral_slope(audio["magnitude_spectrogram"], rfftfreqs)
     audio['spectral_roll_off_0.5'] = spectral_roll_off_point(audio["power_spectrogram"], rfftfreqs, 0.5)
     audio['spectral_roll_off_0.75'] = spectral_roll_off_point(audio["power_spectrogram"], rfftfreqs, 0.75)
     audio['spectral_roll_off_0.9'] = spectral_roll_off_point(audio["power_spectrogram"], rfftfreqs, 0.9)
     audio['spectral_roll_off_0.95'] = spectral_roll_off_point(audio["power_spectrogram"], rfftfreqs, 0.95)
-    audio['zero_crossing_rate'] = zero_crossing_rate(audio["audio"], audio["sample_rate"])
     audio.update(spectral_moments(audio, rfftfreqs))
     
 
@@ -37,7 +35,7 @@ def midi_estimation_from_pitch(frequency):
     :param frequency: The frequency
     :return: The midi note number (or NaN)
     """
-    return 12 * np.log2(frequency / 440) + 69
+    return 12 * torch.log2(frequency / 440) + 69
     
 
 def spectral_centroid(magnitude_spectrum: torch.Tensor, magnitude_freqs: torch.Tensor):
@@ -66,10 +64,8 @@ def spectral_entropy(power_spectrum: torch.Tensor):
     for i in range(power_spectrum.shape[0]):
         for j in range(power_spectrum.shape[-1]):        
             spectrum_pmf = power_spectrum[i, :, j] / torch.sum(power_spectrum)
-            local_entropy = 0
-            for i in range(spectrum_pmf.size):
-                local_entropy += spectrum_pmf[i] * torch.log2(spectrum_pmf[i])
-            entropy[i, j] = -local_entropy
+            log_product = spectrum_pmf * torch.log2(spectrum_pmf)
+            entropy[i, j] = -torch.sum(log_product)
     return entropy
 
 
@@ -100,8 +96,7 @@ def spectral_moments(audio, magnitude_freqs: torch.Tensor):
     Reference: Eyben, pp. 23, 39-40
     """
     # This must be a power spectrum!
-    # power_spectrum = np.square(audio["magnitude_spectrum"])
-    power_spectrum = audio["power_spectrum"]
+    power_spectrum = audio["power_spectrogram"]
     spectral_variance = torch.zeros(power_spectrum.shape[0], power_spectrum.shape[-1])
     spectral_skewness = torch.zeros(power_spectrum.shape[0], power_spectrum.shape[-1])
     spectral_kurtosis = torch.zeros(power_spectrum.shape[0], power_spectrum.shape[-1])
@@ -109,18 +104,15 @@ def spectral_moments(audio, magnitude_freqs: torch.Tensor):
     for i in range(power_spectrum.shape[0]):
         for j in range(power_spectrum.shape[-1]):        
             spectrum_pmf = power_spectrum[i, :, j] / torch.sum(power_spectrum)    
-            spectral_variance = 0
-            spectral_skewness = 0
-            spectral_kurtosis = 0
-            spectral_variance_vector = magnitude_freqs - audio["spectral_centroid"]
+            spectral_variance_vector = magnitude_freqs - audio["spectral_centroid"][i, j]
             spectral_variance_vector = torch.square(spectral_variance_vector)
             spectral_variance_vector = torch.multiply(spectral_variance_vector, spectrum_pmf)
             spectral_variance[i, j] = torch.sum(spectral_variance_vector)
-            spectral_skewness_vector = magnitude_freqs - audio["spectral_centroid"]
+            spectral_skewness_vector = magnitude_freqs - audio["spectral_centroid"][i, j]
             spectral_skewness_vector = torch.pow(spectral_skewness_vector, 3)
             spectral_skewness_vector = torch.multiply(spectral_skewness_vector, spectrum_pmf)
             spectral_skewness[i, j] = torch.sum(spectral_skewness_vector)
-            spectral_kurtosis_vector = magnitude_freqs - audio["spectral_centroid"]
+            spectral_kurtosis_vector = magnitude_freqs - audio["spectral_centroid"][i, j]
             spectral_kurtosis_vector = torch.pow(spectral_kurtosis_vector, 4)
             spectral_kurtosis_vector = torch.multiply(spectral_kurtosis_vector, spectrum_pmf)
             spectral_kurtosis[i, j] = torch.sum(spectral_kurtosis_vector)
@@ -140,13 +132,19 @@ def spectral_roll_off_point(power_spectrum: torch.Tensor, magnitude_freqs: torch
     :return: The roll-off frequency
     Reference: Eyben, p. 41
     """
-    energy = np.sum(power_spectrum)
-    i = -1
-    cumulative_energy = 0
-    while cumulative_energy < n and i < magnitude_freqs.size - 1:
-        i += 1
-        cumulative_energy += power_spectrum[i] / energy
-    return magnitude_freqs[i]
+    roll_offs = torch.zeros(power_spectrum.shape[0], power_spectrum.shape[-1])
+
+    for i in range(power_spectrum.shape[0]):
+        for j in range(power_spectrum.shape[-1]):
+            energy = torch.sum(power_spectrum[i, :, j])
+            k = -1
+            cumulative_energy = 0
+            while cumulative_energy < n and k < magnitude_freqs.numel() - 1:
+                k += 1
+                cumulative_energy += power_spectrum[i, k, j] / energy
+            roll_offs[i, j] = magnitude_freqs[k]
+    
+    return roll_offs
 
 
 def spectral_slope(magnitude_spectrum: torch.Tensor, magnitude_freqs: torch.Tensor):
@@ -157,23 +155,13 @@ def spectral_slope(magnitude_spectrum: torch.Tensor, magnitude_freqs: torch.Tens
     :return: The slope and y-intercept
     Reference: Eyben, pp. 35-38
     """
-    slope = sklearn.linear_model.LinearRegression().fit(np.reshape(magnitude_spectrum, (magnitude_spectrum.shape[-1], 1)), magnitude_freqs)
-    return slope.coef_[-1], slope.intercept_
+    slopes = torch.zeros(magnitude_spectrum.shape[0], magnitude_spectrum.shape[-1])
+    y_ints = torch.zeros(magnitude_spectrum.shape[0], magnitude_spectrum.shape[-1])
 
-
-def zero_crossing_rate(audio, sample_rate):
-    """
-    Extracts the zero-crossing rate
-    :param audio: A NumPy array of audio samples
-    :param sample_rate: The sample rate of the audio
-    :return: The zero-crossing rate
-    Reference: Eyben, p. 20
-    """
-    num_zc = 0
-    N = audio.shape[-1]
-    for n in range(1, N):
-        if audio[n-1] * audio[n] < 0:
-            num_zc += 1
-        elif n < N-1 and audio[n-1] * audio[n+1] < 0 and audio[n] == 0:
-            num_zc += 1
-    return num_zc * sample_rate / N
+    for i in range(magnitude_spectrum.shape[0]):
+        for j in range(magnitude_spectrum.shape[-1]):
+            slope = sklearn.linear_model.LinearRegression().fit(torch.reshape(magnitude_spectrum[i, :, j], (magnitude_spectrum.shape[-2], 1)), magnitude_freqs)
+            slopes[i, j] = torch.tensor(slope.coef_[-1])
+            y_ints[i, j] = torch.tensor(slope.intercept_)
+    
+    return slopes, y_ints

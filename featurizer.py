@@ -31,7 +31,7 @@ def featurize(audio) -> list:
     audio["magnitude_spectrogram"] = spectrogram_transform(audio["audio"])
     audio["power_spectrogram"] = power_spectrogram_transform(audio["audio"])
     audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
-    # analysis.analyzer(audio)
+    analysis.analyzer(audio)
     del audio["magnitude_spectrogram"]  # We don't need the regular spectrum anymore - just the power spectrum
 
 
