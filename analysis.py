@@ -13,11 +13,10 @@ import sklearn.linear_model
 def analyzer(audio):
     """
     Runs a suite of analysis tools on a provided NumPy array of audio samples
-    :param audio: An audio Tensor
+    :param audio: An audio dictionary
     """
     rfftfreqs = torch.fft.rfftfreq((audio["magnitude_spectrogram"].shape[-2] - 1) * 2, 1/audio["sample_rate"])
     audio['pitch'] = None
-    # results['midi'] = midi_estimation_from_pitch(results['pitch'])
     audio['spectral_centroid'] = spectral_centroid(audio["magnitude_spectrogram"], rfftfreqs)
     audio['spectral_entropy'] = spectral_entropy(audio["power_spectrogram"])
     audio['spectral_flatness'] = spectral_flatness(audio["magnitude_spectrogram"])
@@ -27,16 +26,7 @@ def analyzer(audio):
     audio['spectral_roll_off_0.9'] = spectral_roll_off_point(audio["power_spectrogram"], rfftfreqs, 0.9)
     audio['spectral_roll_off_0.95'] = spectral_roll_off_point(audio["power_spectrogram"], rfftfreqs, 0.95)
     audio.update(spectral_moments(audio, rfftfreqs))
-    
-
-def midi_estimation_from_pitch(frequency):
-    """
-    Estimates MIDI note number from provided frequency
-    :param frequency: The frequency
-    :return: The midi note number (or NaN)
-    """
-    return 12 * torch.log2(frequency / 440) + 69
-    
+        
 
 def spectral_centroid(magnitude_spectrum: torch.Tensor, magnitude_freqs: torch.Tensor):
     """
