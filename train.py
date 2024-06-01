@@ -179,32 +179,47 @@ if __name__ == "__main__":
     NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
     PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
     MODEL_SAVE_INTERVAL = 10                                 # The epoch interval for saving the model
+    model_metadata = None
     
-    # The model metadata - save to JSON file
-    model_metadata = {
-        "model_name": "audio",
-        "path": FILE_NAME,
-        "training_sequence_length": 20,
-        "num_layers": 2,
-        "hidden_size": 1024,
-        "batch_size": 100,
-        "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_1.pth"),
-        "num_features": featurizer.NUM_FEATURES,
-        "output_size": featurizer.FFT_SIZE + 2,
-        "loss": None
-    }
-    with open(FILE_NAME, "w") as model_json_file:
-        model_json_file.write(json.dumps(model_metadata))
-
-    print("Loading dataset...\n")
-    sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"])
+    # The model metadata - load it from file if it exists already
+    if (RETRAIN and not os.path.exists(FILE_NAME)) or not RETRAIN:
+        model_metadata = {
+            "model_name": "audio",
+            "path": FILE_NAME,
+            "training_sequence_length": 20,
+            "num_layers": 2,
+            "hidden_size": 1024,
+            "batch_size": 100,
+            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_1.pth"),
+            "num_features": featurizer.NUM_FEATURES,
+            "output_size": featurizer.FFT_SIZE + 2,
+            "loss": None,
+            "mean": None,
+            "iqr": None
+        }
+    else:
+        with open(FILE_NAME, "r") as model_json_file:
+            model_metadata = json.loads(model_json_file.read())
+    
+    # Load the dataset
+    print("Loading dataset...")
+    sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], 
+                                            model_metadata["mean"], model_metadata["iqr"])
     dataloader = DataLoader(sequence_dataset, model_metadata["batch_size"], True, 
                             num_workers=NUM_DATALOADER_WORKERS)
-    print("Dataset loaded.\n")
-
+    
+    # Save the model metadata if it is new. We need to store the mean and IQR, so
+    # we couldn't save the model metadata until after making the dataset.
+    if model_metadata["mean"] is None or model_metadata["iqr"] is None:
+        model_metadata["mean"] = float(sequence_dataset.mean)
+        model_metadata["iqr"] = float(sequence_dataset.iqr)
+        with open(FILE_NAME, "w") as model_json_file:
+            model_json_file.write(json.dumps(model_metadata))
+        print("Dataset loaded.")
+    
     # Prefer CUDA if available, otherwise MPS (if on Apple), or CPU as a last-level default
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-    print(f"Using device {device}\n")
+    print(f"Using device {device}")
     
     # Load and prepare the model. If retraining the model, we will need to load the
     # previous state dictionary so that we aren't training from scratch.
@@ -217,6 +232,6 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     
     # Train the model
-    print(f"Training for {NUM_EPOCHS} epochs...\n")
+    print(f"Training for {NUM_EPOCHS} epochs...")
     train_sequences(model, dataloader, loss_fn, optimizer, NUM_EPOCHS, PRINT_UPDATE_INTERVAL, MODEL_SAVE_INTERVAL, model_metadata, device)
     

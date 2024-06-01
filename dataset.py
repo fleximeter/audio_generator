@@ -6,6 +6,7 @@ This module has a dataset class for storing sequences.
 
 import corpus
 import featurizer
+import torch
 from torch.utils.data import Dataset
 from typing import Tuple
 
@@ -20,15 +21,18 @@ class AudioDataset(Dataset):
     vary, it is necessary to provide a collate function to the DataLoader, and a
     collate function is provided as a static function in this class.
     """
-    def __init__(self, directory, sequence_length) -> None:
+    def __init__(self, directory, sequence_length, mean=None, iqr=None) -> None:
         """
         Makes an AudioDataset
         :param directory: A list of NumPy audio arrays to turn into a dataset
-        :param min_sequence_length: The minimum sequence length
-        :param max_sequence_length: The maximum sequence length
+        :param sequence_length: The sequence length
+        :param mean: The mean for Robust Scaling. If None, will be computed.
+        :param iqr: The IQR for Robust Scaling. If None, will be computed.
         """
         super(AudioDataset, self).__init__()
         self.sequence_length = sequence_length
+        self.mean = mean
+        self.iqr = iqr
         self.data, self.labels = self._load_data(directory)
         
     def __len__(self) -> int:
@@ -49,16 +53,36 @@ class AudioDataset(Dataset):
     
     def _load_data(self, directory) -> Tuple[list, list]:
         """
-        Parses each MusicXML file and generates sequences and labels from it
+        Loads the files and generates sequences and labels from them
         :param directory: A list of NumPy audio arrays to turn into a dataset
         """
         sequences = []
         labels = []
         audio_corpus = corpus.load_audio(directory)
+        ds_list = []
         for audio in audio_corpus:
             featurizer.featurize(audio)
+            for key, val in audio.items():
+                if type(val) == torch.Tensor:
+                    ds_list.append(val)
+        
+        # Prepare data scaling
+        if self.mean is None or self.iqr is None:
+            self.mean, self.iqr = featurizer.prepare_robust_scaler(ds_list)
+        else:
+            self.mean = torch.tensor(self.mean)
+            self.iqr = torch.tensor(self.iqr)
+
+        self.data_scaler = featurizer.RobustScaler(self.mean, self.iqr)
+
+        for audio in audio_corpus:
             file_sequences, file_labels = featurizer.make_n_gram_sequences(audio, self.sequence_length)
             sequences += file_sequences
             labels += file_labels
+
+        # Scale the data
+        for i in range(len(sequences)):
+            sequences[i] = self.data_scaler(sequences[i])
+
         return sequences, labels
     

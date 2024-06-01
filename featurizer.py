@@ -56,6 +56,7 @@ def prepare_robust_scaler(tensor_list):
     """
     new_tensor_list = [tensor.flatten() for tensor in tensor_list]
     new_tensor = torch.cat(new_tensor_list)
+    # print("nans?", torch.nonzero(torch.isnan(new_tensor)))
     new_np_arr = new_tensor.numpy()
     return np.median(new_np_arr), np.percentile(new_np_arr, 75) - np.percentile(new_np_arr, 25)
 

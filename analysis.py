@@ -39,6 +39,9 @@ def spectral_centroid(magnitude_spectrum: torch.Tensor, magnitude_freqs: torch.T
     for i in range(magnitude_spectrum.shape[0]):
         for j in range(magnitude_spectrum.shape[-1]):
             centroid[i, j] = torch.sum(torch.multiply(magnitude_spectrum[i, :, j], magnitude_freqs)) / torch.sum(magnitude_spectrum[i, :, j])
+            if torch.isnan(centroid[i, j]) or torch.isneginf(centroid[i, j]) or torch.isinf(centroid[i, j]):
+                centroid[i, j] = 0
+
     return centroid
 
 
@@ -55,6 +58,9 @@ def spectral_entropy(power_spectrum: torch.Tensor):
             spectrum_pmf = power_spectrum[i, :, j] / torch.sum(power_spectrum)
             log_product = spectrum_pmf * torch.log2(spectrum_pmf)
             entropy[i, j] = -torch.sum(log_product)
+            if torch.isnan(entropy[i, j]) or torch.isneginf(entropy[i, j]) or torch.isinf(entropy[i, j]):
+                entropy[i, j] = 0
+            
     return entropy
 
 
@@ -72,6 +78,9 @@ def spectral_flatness(magnitude_spectrum: torch.Tensor):
                     torch.log(magnitude_spectrum[i, :, j])) / magnitude_spectrum.size(1)) / \
                     (torch.sum(magnitude_spectrum[i, :, j]) / magnitude_spectrum.size(1))
                 )
+            if torch.isnan(flatness[i, j]) or torch.isneginf(flatness[i, j]) or torch.isinf(flatness[i, j]):
+                flatness[i, j] = 0
+            
     return flatness
 
 
@@ -97,14 +106,21 @@ def spectral_moments(audio, magnitude_freqs: torch.Tensor):
             spectral_variance_vector = torch.square(spectral_variance_vector)
             spectral_variance_vector = torch.multiply(spectral_variance_vector, spectrum_pmf)
             spectral_variance[i, j] = torch.sum(spectral_variance_vector)
+            if torch.isnan(spectral_variance[i, j]) or torch.isneginf(spectral_variance[i, j]) or torch.isinf(spectral_variance[i, j]):
+                spectral_variance[i, j] = 0
             spectral_skewness_vector = magnitude_freqs - audio["spectral_centroid"][i, j]
             spectral_skewness_vector = torch.pow(spectral_skewness_vector, 3)
             spectral_skewness_vector = torch.multiply(spectral_skewness_vector, spectrum_pmf)
             spectral_skewness[i, j] = torch.sum(spectral_skewness_vector)
+            if torch.isnan(spectral_skewness[i, j]) or torch.isneginf(spectral_skewness[i, j]) or torch.isinf(spectral_skewness[i, j]):
+                spectral_skewness[i, j] = 0
             spectral_kurtosis_vector = magnitude_freqs - audio["spectral_centroid"][i, j]
             spectral_kurtosis_vector = torch.pow(spectral_kurtosis_vector, 4)
             spectral_kurtosis_vector = torch.multiply(spectral_kurtosis_vector, spectrum_pmf)
             spectral_kurtosis[i, j] = torch.sum(spectral_kurtosis_vector)
+            if torch.isnan(spectral_kurtosis[i, j]) or torch.isneginf(spectral_kurtosis[i, j]) or torch.isinf(spectral_kurtosis[i, j]):
+                spectral_kurtosis[i, j] = 0
+
 
     spectral_skewness /= torch.float_power(spectral_variance, 3/2)
     spectral_kurtosis /= torch.pow(spectral_variance, 2)
@@ -132,6 +148,9 @@ def spectral_roll_off_point(power_spectrum: torch.Tensor, magnitude_freqs: torch
                 k += 1
                 cumulative_energy += power_spectrum[i, k, j] / energy
             roll_offs[i, j] = magnitude_freqs[k]
+            if torch.isnan(roll_offs[i, j]) or torch.isneginf(roll_offs[i, j]) or torch.isinf(roll_offs[i, j]):
+                roll_offs[i, j] = 0
+            
     
     return roll_offs
 
@@ -152,5 +171,10 @@ def spectral_slope(magnitude_spectrum: torch.Tensor, magnitude_freqs: torch.Tens
             slope = sklearn.linear_model.LinearRegression().fit(torch.reshape(magnitude_spectrum[i, :, j], (magnitude_spectrum.shape[-2], 1)), magnitude_freqs)
             slopes[i, j] = torch.tensor(slope.coef_[-1])
             y_ints[i, j] = torch.tensor(slope.intercept_)
+            if torch.isnan(slopes[i, j]) or torch.isneginf(slopes[i, j]) or torch.isinf(slopes[i, j]):
+                slopes[i, j] = 0
+            if torch.isnan(y_ints[i, j]) or torch.isneginf(y_ints[i, j]) or torch.isinf(y_ints[i, j]):
+                y_ints[i, j] = 0
+
     
     return slopes, y_ints
