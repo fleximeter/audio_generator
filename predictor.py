@@ -6,12 +6,11 @@ You will need to provide the model metadata file name so that it can load import
 information about the model, such as the number of layers and the hidden size.
 """
 
-import dataset
 import json
-import music21
 import featurizer
 import model_definition
 import torch
+import torchaudio
 from typing import Tuple
 
 
@@ -57,6 +56,9 @@ if __name__ == "__main__":
     
     try:
         audio = featurizer.load_audio_file(PROMPT_FILE)
+        # Discard all frames beyond the first N frames
+        audio["magnitude_spectrogram"] = audio["magnitude_spectrogram"][:, :, :START_FRAME]
+        audio["phase_spectrogram"] = audio["phase_spectrogram"][:, :, :START_FRAME]
     except Exception as e:
         abort = True
         print("ERROR: Could not read the audio prompt file. Aborting.")
@@ -64,7 +66,6 @@ if __name__ == "__main__":
     if not abort:
         # Predict only for the top staff
         feature_vectors = featurizer.make_feature_vector(audio)
-        feature_vectors = feature_vectors[:, :, :START_FRAME]
         new_audio_frames = []
         
         # Load the model state dictionary from file
@@ -74,9 +75,23 @@ if __name__ == "__main__":
         
         # Predict the next N notes
         for i in range(FRAMES_TO_PREDICT):
+            # Make an abbreviated sequence of the proper length for running through the model
             feature_vectors_predict = feature_vectors[:, :, feature_vectors.shape[-1] - model_metadata["training_sequence_length"]:]
             predicted, hidden = predict_from_sequence(model, feature_vectors)
-            new_audio_frames.append(featurizer.make_feature_frame(predicted[:predicted.numel()//2], predicted[predicted.numel()//2:]))
+            predicted = torch.squeeze(torch.detach(predicted))
+            new_audio_frames.append(featurizer.make_feature_frame(predicted[:predicted.numel()//2], predicted[predicted.numel()//2:], audio["sample_rate"]))
             new_feature_vector = featurizer.make_feature_vector(new_audio_frames[-1])
             feature_vectors = torch.hstack((feature_vectors, new_feature_vector))
 
+        output_mag_spectrum = [audio["magnitude_spectrogram"]]
+        output_phase_spectrum = [audio["phase_spectrogram"]]
+        for frame in new_audio_frames:
+            output_mag_spectrum.append(frame["magnitude_spectrogram"])
+            output_phase_spectrum.append(frame["phase_spectrogram"])
+        output_mag_spectrum = torch.cat(output_mag_spectrum, dim=2)
+        output_phase_spectrum = torch.cat(output_phase_spectrum, dim=2)
+        output_complex_spectrum = torch.cos(output_phase_spectrum) * output_mag_spectrum + 1j * torch.sin(output_phase_spectrum) * output_mag_spectrum
+        istft = torchaudio.transforms.InverseSpectrogram(featurizer.FFT_SIZE)
+        new_audio = istft(output_complex_spectrum)
+        torchaudio.save("data/output1.wav", new_audio, audio["sample_rate"])
+        

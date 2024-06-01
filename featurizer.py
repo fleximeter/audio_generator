@@ -98,6 +98,7 @@ def make_feature_frame(fft_mags, fft_phases, sample_rate):
     }
     vector["power_spectrogram"] = torch.square(vector["magnitude_spectrogram"])
     vector["melscale_spectrogram"] = melscale_transform(vector["power_spectrogram"])
+    vector["num_spectrogram_frames"] = 1
     analysis.analyzer(vector)
     del vector["power_spectrogram"]
     return vector
@@ -109,45 +110,26 @@ def make_feature_vector(feature_dict):
     :param feature_dict: The feature frame
     :return: The feature vector
     """
-    # If there is only one STFT frame, just make a vector
-    if len(feature_dict["spectral_centroid"].shape) == 1:
-        return torch.hstack((
-            feature_dict["melscale_spectrogram"],
-            feature_dict["spectral_centroid"],
-            feature_dict["spectral_entropy"],
-            feature_dict["spectral_flatness"],
-            feature_dict["spectral_slope"],
-            feature_dict["spectral_y_int"],
-            feature_dict["spectral_roll_off_0.5"],
-            feature_dict["spectral_roll_off_0.75"],
-            feature_dict["spectral_roll_off_0.9"],
-            feature_dict["spectral_roll_off_0.95"],
-            feature_dict["spectral_variance"],
-            feature_dict["spectral_skewness"],
-            feature_dict["spectral_kurtosis"]
+    sequence = []
+    for i in range(feature_dict["num_spectrogram_frames"]):
+        element = torch.hstack((
+            feature_dict["melscale_spectrogram"][0, :, i],
+            feature_dict["spectral_centroid"][0, i],
+            feature_dict["spectral_entropy"][0, i],
+            feature_dict["spectral_flatness"][0, i],
+            feature_dict["spectral_slope"][0, i],
+            feature_dict["spectral_y_int"][0, i],
+            feature_dict["spectral_roll_off_0.5"][0, i],
+            feature_dict["spectral_roll_off_0.75"][0, i],
+            feature_dict["spectral_roll_off_0.9"][0, i],
+            feature_dict["spectral_roll_off_0.95"][0, i],
+            feature_dict["spectral_variance"][0, i],
+            feature_dict["spectral_skewness"][0, i],
+            feature_dict["spectral_kurtosis"][0, i]
         ))
-        
-    # Else make a feature matrix
-    else:
-        sequence = []
-        for i in range(feature_dict["num_spectrogram_frames"]):
-            element = torch.hstack((
-                feature_dict["melscale_spectrogram"][0, :, i],
-                feature_dict["spectral_centroid"][0, i],
-                feature_dict["spectral_entropy"][0, i],
-                feature_dict["spectral_flatness"][0, i],
-                feature_dict["spectral_slope"][0, i],
-                feature_dict["spectral_y_int"][0, i],
-                feature_dict["spectral_roll_off_0.5"][0, i],
-                feature_dict["spectral_roll_off_0.75"][0, i],
-                feature_dict["spectral_roll_off_0.9"][0, i],
-                feature_dict["spectral_roll_off_0.95"][0, i],
-                feature_dict["spectral_variance"][0, i],
-                feature_dict["spectral_skewness"][0, i],
-                feature_dict["spectral_kurtosis"][0, i]
-            ))
-            sequence.append(element)
-        return torch.vstack(sequence)
+        sequence.append(element)
+    sequence = torch.vstack(sequence)
+    return torch.reshape(sequence, (1,) + sequence.shape)
 
 
 def make_n_gram_sequences(featurized_audio, n) -> list:
