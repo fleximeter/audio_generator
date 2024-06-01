@@ -6,18 +6,14 @@ and for postprocessing generated data. It also has a dataset class for storing
 sequences.
 """
 
-import feature_definitions
 import torch
-import torch.nn.functional as F
-import math
-import numpy as np
-from fractions import Fraction
 import torchaudio
 import analysis
 
 
 FFT_SIZE = 1024
 NUM_MELS = FFT_SIZE // 16
+NUM_FEATURES = NUM_MELS + 12
 
 
 def featurize(audio) -> list:
@@ -25,15 +21,60 @@ def featurize(audio) -> list:
     Loads an audio file and featurizes it
     :param audio: The audio to load
     """
-    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=1)
-    power_spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE)
+    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=None)
     melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=FFT_SIZE // 2 + 1)
-    audio["magnitude_spectrogram"] = spectrogram_transform(audio["audio"])
-    audio["power_spectrogram"] = power_spectrogram_transform(audio["audio"])
+    complex_out = spectrogram_transform(audio["audio"])
+    audio["magnitude_spectrogram"] = torch.sqrt(torch.square(torch.real(complex_out)) + torch.square(torch.imag(complex_out)))
+    audio["phase_spectrogram"] = torch.atan2(torch.imag(complex_out), torch.real(complex_out))
+    audio["power_spectrogram"] = torch.square(audio["magnitude_spectrogram"])
     audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
     audio["num_spectrogram_frames"] = audio["power_spectrogram"].shape[-1]
     analysis.analyzer(audio)
-    del audio["magnitude_spectrogram"]  # We don't need the regular spectrum anymore - just the power spectrum
+    del audio["power_spectrogram"]
+
+
+def make_feature_frame(fft_mags, fft_phases, sample_rate):
+    """
+    Makes a feature dictionary for a FFT frame
+    :param fft_mags: The FFT magnitudes
+    :param fft_phases: The FFT phases
+    :param sample_rate: The sample rate
+    :return: The feature dictionary
+    """
+    melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, sample_rate, n_stft=FFT_SIZE // 2 + 1)
+    vector = {
+        "magnitude_spectrogram": torch.reshape(fft_mags, (1, fft_mags.shape[-1], 1)),
+        "phase_spectrogram": torch.reshape(fft_phases, (1, fft_phases.shape[-1], 1)),
+        "sample_rate": sample_rate
+    }
+    vector["power_spectrogram"] = torch.square(vector["magnitude_spectrogram"])
+    vector["melscale_spectrogram"] = melscale_transform(vector["power_spectrogram"])
+    analysis.analyzer(vector)
+    del vector["power_spectrogram"]
+    return vector
+
+
+def make_feature_vector(feature_dict):
+    """
+    Makes a feature vector for a feature frame
+    :param feature_dict: The feature frame
+    :return: The feature vector
+    """
+    return torch.hstack((
+        feature_dict["melscale_spectrogram"],
+        feature_dict["spectral_centroid"],
+        feature_dict["spectral_entropy"],
+        feature_dict["spectral_flatness"],
+        feature_dict["spectral_slope"],
+        feature_dict["spectral_y_int"],
+        feature_dict["spectral_roll_off_0.5"],
+        feature_dict["spectral_roll_off_0.75"],
+        feature_dict["spectral_roll_off_0.9"],
+        feature_dict["spectral_roll_off_0.95"],
+        feature_dict["spectral_variance"],
+        feature_dict["spectral_skewness"],
+        feature_dict["spectral_kurtosis"]
+    ))
 
 
 def make_n_gram_sequences(featurized_audio, n) -> list:
@@ -72,5 +113,5 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
         x.append(torch.vstack(sequence))
 
         # The labels are just the next STFT frame
-        y.append(featurized_audio["power_spectrogram"][0, :, j])
+        y.append(torch.hstack((featurized_audio["magnitude_spectrogram"][0, :, j], featurized_audio["phase_spectrogram"][0, :, j])))
     return x, y

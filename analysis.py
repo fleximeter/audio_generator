@@ -16,7 +16,6 @@ def analyzer(audio):
     :param audio: An audio dictionary
     """
     rfftfreqs = torch.fft.rfftfreq((audio["magnitude_spectrogram"].shape[-2] - 1) * 2, 1/audio["sample_rate"])
-    audio['pitch'] = None
     audio['spectral_centroid'] = spectral_centroid(audio["magnitude_spectrogram"], rfftfreqs)
     audio['spectral_entropy'] = spectral_entropy(audio["power_spectrogram"])
     audio['spectral_flatness'] = spectral_flatness(audio["magnitude_spectrogram"])

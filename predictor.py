@@ -15,7 +15,7 @@ import torch
 from typing import Tuple
 
 
-def predict_from_sequence(model, sequence, training_sequence_max_length) -> Tuple[dict, torch.Tensor]:
+def predict_from_sequence(model, sequence, training_sequence_length) -> Tuple[dict, torch.Tensor]:
     """
     Predicts the next note, based on an existing model and a sequence of notes
     :param model: The model
@@ -26,9 +26,7 @@ def predict_from_sequence(model, sequence, training_sequence_max_length) -> Tupl
     as prompts.
     :return: The prediction as a note dictionary, and the hidden states as a tuple
     """
-    s, l = dataset.MusicXMLDataSet.prepare_prediction(sequence, training_sequence_max_length)
-    prediction, hidden = model(s, l, model.init_hidden())
-    predicted_note = featurizer.retrieve_class_dictionary([predict.argmax().item() for predict in prediction])
+    prediction, hidden = model(sequence, model.init_hidden())
     return predicted_note, hidden
 
 
