@@ -15,7 +15,7 @@ import torch
 from typing import Tuple
 
 
-def predict_from_sequence(model, sequence, training_sequence_length) -> Tuple[dict, torch.Tensor]:
+def predict_from_sequence(model, sequence) -> Tuple[dict, torch.Tensor]:
     """
     Predicts the next note, based on an existing model and a sequence of notes
     :param model: The model
@@ -27,25 +27,7 @@ def predict_from_sequence(model, sequence, training_sequence_length) -> Tuple[di
     :return: The prediction as a note dictionary, and the hidden states as a tuple
     """
     prediction, hidden = model(sequence, model.init_hidden())
-    return predicted_note, hidden
-
-
-def predict_next_note(model, current_note, hidden, training_sequence_max_length) -> Tuple[dict, torch.Tensor]:
-    """
-    Predicts the next note, based on an existing model and a sequence of notes
-    :param model: The model
-    :param current_note: The current note
-    :param hidden: The hidden states
-    :param training_sequence_max_length: The maximum sequence length the model was trained on
-    This is necessary because the DataLoader will pad sequences that are shorter than the maximum
-    length, and the model might not behave as predicted if we don't pad sequences that we use
-    as prompts.
-    :return: The prediction as a note dictionary, and the hidden states as a tuple
-    """
-    s, l = dataset.MusicXMLDataSet.prepare_prediction(current_note, training_sequence_max_length)
-    prediction, hidden = model(s, l, hidden)
-    predicted_note = featurizer.retrieve_class_dictionary([predict.argmax().item() for predict in prediction])
-    return predicted_note, hidden
+    return prediction, hidden
 
 
 if __name__ == "__main__":
@@ -53,9 +35,10 @@ if __name__ == "__main__":
     # YOU WILL NEED TO EDIT THIS MANUALLY
     #######################################################################################
 
-    MUSICXML_PROMPT_FILE = "./data/prompt7.musicxml"  # Only the top staff will be considered
-    MODEL_METADATA_FILE = "./data/model14.json"
-    NOTES_TO_PREDICT = 25
+    PROMPT_FILE = "./data/train/sample.48.Viola.pizz.sulC.ff.C3B3.mono.wav"
+    MODEL_METADATA_FILE = "./data/model1.json"
+    FRAMES_TO_PREDICT = 25
+    START_FRAME = 100
 
     #######################################################################################
     # YOU PROBABLY DON'T NEED TO EDIT ANYTHING BELOW HERE
@@ -73,32 +56,27 @@ if __name__ == "__main__":
         print("ERROR: Could not open the model metadata file. Aborting.")
     
     try:
-        score = music21.converter.parse(MUSICXML_PROMPT_FILE)
+        audio = featurizer.load_audio_file(PROMPT_FILE)
     except Exception as e:
         abort = True
-        print("ERROR: Could not read the Music XML prompt file. Aborting.")
+        print("ERROR: Could not read the audio prompt file. Aborting.")
 
     if not abort:
         # Predict only for the top staff
-        data = featurizer.load_data(score[featurizer.get_staff_indices(score)[0]])
-        tokenized_data = featurizer.make_one_hot_features(data)
+        feature_vectors = featurizer.make_feature_vector(audio)
+        feature_vectors = feature_vectors[:, :, :START_FRAME]
+        new_audio_frames = []
         
         # Load the model state dictionary from file
-        model = model_definition.LSTMAudio(model_metadata["num_features"], model_metadata["output_sizes"], 
+        model = model_definition.LSTMAudio(model_metadata["num_features"], model_metadata["output_size"], 
                                            model_metadata["hidden_size"], model_metadata["num_layers"])
         model.load_state_dict(torch.load(model_metadata["state_dict"]))
         
         # Predict the next N notes
-        next_note, hidden = predict_from_sequence(model, tokenized_data, model_metadata["training_sequence_max_length"])
-        for i in range(NOTES_TO_PREDICT):
-            # get the note time signature and beat based on the previous note
-            featurizer.update_note_based_on_previous(next_note, data)
-            data.append(next_note)
-            next_note, hidden = predict_next_note(model, featurizer.make_one_hot_features([next_note]), hidden, model_metadata["training_sequence_max_length"])
+        for i in range(FRAMES_TO_PREDICT):
+            feature_vectors_predict = feature_vectors[:, :, feature_vectors.shape[-1] - model_metadata["training_sequence_length"]:]
+            predicted, hidden = predict_from_sequence(model, feature_vectors)
+            new_audio_frames.append(featurizer.make_feature_frame(predicted[:predicted.numel()//2], predicted[predicted.numel()//2:]))
+            new_feature_vector = featurizer.make_feature_vector(new_audio_frames[-1])
+            feature_vectors = torch.hstack((feature_vectors, new_feature_vector))
 
-        # Turn the data into a score
-        score = featurizer.unload_data(data)
-        score.show()
-        # destination_split = os.path.split(MUSICXML_PROMPT_FILE)
-        # destination_file = "predicted_" + destination_split[-1]
-        # xml_gen.export_to_xml(score, os.path.join(*destination_split[:-1], destination_file))
