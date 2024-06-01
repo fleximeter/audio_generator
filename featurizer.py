@@ -6,15 +6,30 @@ and for postprocessing generated data. It also has a dataset class for storing
 sequences.
 """
 
+import analysis
+import numpy as np
 import torch
 import torchaudio
-import analysis
 
 
 FFT_SIZE = 1024
 NUM_MELS = FFT_SIZE // 16
 NUM_FEATURES = NUM_MELS + 12
 
+
+class RobustScaler:
+    def __init__(self, median, iqr):
+        """
+        Initializes the RobustScaler
+        :param median: The median of the data to scale
+        :param iqr: The IQR of the data to scale
+        """
+        self.median = torch.tensor(median)
+        self.iqr = torch.tensor(iqr)
+
+    def __call__(self, data: torch.Tensor, *args: torch.Any, **kwds: torch.Any) -> torch.Any:
+        return (data - self.median) / self.iqr
+        
 
 def featurize(audio) -> list:
     """
@@ -31,6 +46,18 @@ def featurize(audio) -> list:
     audio["num_spectrogram_frames"] = audio["power_spectrogram"].shape[-1]
     analysis.analyzer(audio)
     del audio["power_spectrogram"]
+
+
+def prepare_robust_scaler(tensor_list):
+    """
+    Prepares the Robust Scaler by finding the median and IQR of the tensors in the provided list
+    :param tensor_list: A list of Tensors
+    :return: median, iqr
+    """
+    new_tensor_list = [tensor.flatten() for tensor in tensor_list]
+    new_tensor = torch.cat(new_tensor_list)
+    new_np_arr = new_tensor.numpy()
+    return np.median(new_np_arr), np.percentile(new_np_arr, 75) - np.percentile(new_np_arr, 25)
 
 
 def make_feature_frame(fft_mags, fft_phases, sample_rate):
