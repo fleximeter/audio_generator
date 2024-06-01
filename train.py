@@ -73,44 +73,11 @@ def train_sequences(model, dataloader, loss_fn, optimizer, num_epochs, status_in
             y = y.to(device)
             hidden = model.init_hidden(x.shape[0])
             
-            for i in range(x.shape[0]):
-                found = False
-                for j in range(x.shape[1]):
-                    for k in range(x.shape[2]):
-                        if torch.isnan(y[i, j]):
-                            print("NAN in X", num_batches_this_epoch)
-                            found = True
-                            break
-                    if found:
-                        break
-                if found:
-                    break
-            
-            
-            for i in range(y.shape[0]):
-                found = False
-                for j in range(y.shape[1]):
-                    if torch.isnan(y[i, j]):
-                        print("NAN in Y", num_batches_this_epoch)
-                        found = True
-                        break
-                if found:
-                    break
             # This is necessary because of the size of the output labels.
             model.lstm.flatten_parameters()
 
             # Run the current batch through the net
             output, _ = model(x, hidden)
-            for i in range(output.shape[0]):
-                found = False
-                for j in range(output.shape[1]):
-                    if torch.isnan(output[i, j]):
-                        print("NAN in output", num_batches_this_epoch)
-                        found = True
-                        break
-                if found:
-                    print(output[0, :5])
-                    break
                         
             # Compute loss
             loss = loss_fn(output, y)
@@ -175,7 +142,7 @@ if __name__ == "__main__":
     FILE_NAME = os.path.join(ROOT_PATH, "data/model1.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
     NUM_EPOCHS = 100                                         # The number of epochs to train
-    LEARNING_RATE = 0.00001                                    # The model learning rate
+    LEARNING_RATE = 0.001                                    # The model learning rate
     NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
     PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
     MODEL_SAVE_INTERVAL = 10                                 # The epoch interval for saving the model
