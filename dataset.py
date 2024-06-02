@@ -73,7 +73,7 @@ class AudioDataset(Dataset):
             self.mean = torch.tensor(self.mean)
             self.iqr = torch.tensor(self.iqr)
 
-        self.data_scaler = featurizer.RobustScaler(self.mean, self.iqr)
+        # self.data_scaler = featurizer.RobustScaler(self.mean, self.iqr)
 
         for audio in audio_corpus:
             file_sequences, file_labels = featurizer.make_n_gram_sequences(audio, self.sequence_length)
@@ -81,8 +81,8 @@ class AudioDataset(Dataset):
             labels += file_labels
 
         # Scale the data
-        for i in range(len(sequences)):
-            sequences[i] = self.data_scaler(sequences[i])
+        # for i in range(len(sequences)):
+        #     sequences[i] = self.data_scaler(sequences[i])
 
         return sequences, labels
     

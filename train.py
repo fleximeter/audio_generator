@@ -139,7 +139,7 @@ if __name__ == "__main__":
     ROOT_PATH = "/Users/jmartin50/audio_generator"
     ROOT_PATH = "."    
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
-    FILE_NAME = os.path.join(ROOT_PATH, "data/model2.json")  # The path to the model metadata JSON file
+    FILE_NAME = os.path.join(ROOT_PATH, "data/model3.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
     NUM_EPOCHS = 1000                                        # The number of epochs to train
     LEARNING_RATE = 0.001                                    # The model learning rate
@@ -153,15 +153,15 @@ if __name__ == "__main__":
         model_metadata = {
             "model_name": "audio",
             "path": FILE_NAME,
-            "training_sequence_length": 20,
-            "num_layers": 2,
+            "training_sequence_length": 10,
+            "num_layers": 4,
             "hidden_size": 1024,
             "batch_size": 500,
-            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_2.pth"),
+            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_3.pth"),
             "num_features": featurizer.NUM_FEATURES,
             "output_size": featurizer.FFT_SIZE + 2,
             "loss": None,
-            "mean": None,
+            "median": None,
             "iqr": None
         }
     else:
@@ -171,14 +171,14 @@ if __name__ == "__main__":
     # Load the dataset
     print("Loading dataset...")
     sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], 
-                                            model_metadata["mean"], model_metadata["iqr"])
+                                            model_metadata["median"], model_metadata["iqr"])
     dataloader = DataLoader(sequence_dataset, model_metadata["batch_size"], True, 
                             num_workers=NUM_DATALOADER_WORKERS)
     
     # Save the model metadata if it is new. We need to store the mean and IQR, so
     # we couldn't save the model metadata until after making the dataset.
-    if model_metadata["mean"] is None or model_metadata["iqr"] is None:
-        model_metadata["mean"] = float(sequence_dataset.mean)
+    if model_metadata["median"] is None or model_metadata["iqr"] is None:
+        model_metadata["median"] = float(sequence_dataset.mean)
         model_metadata["iqr"] = float(sequence_dataset.iqr)
         with open(FILE_NAME, "w") as model_json_file:
             model_json_file.write(json.dumps(model_metadata))

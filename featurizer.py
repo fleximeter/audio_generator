@@ -13,7 +13,7 @@ import torch
 import torchaudio
 
 
-FFT_SIZE = 128
+FFT_SIZE = 1024
 NUM_MELS = FFT_SIZE // 16
 NUM_FEATURES = FFT_SIZE + 2 + 12
 
@@ -28,7 +28,7 @@ class RobustScaler:
         self.median = torch.tensor(median)
         self.iqr = torch.tensor(iqr)
 
-    def __call__(self, data: torch.Tensor, *args: torch.Any, **kwds: torch.Any) -> torch.Any:
+    def __call__(self, data: torch.Tensor, *args, **kwds):
         return (data - self.median) / self.iqr
         
 
@@ -43,7 +43,7 @@ def featurize(audio) -> list:
     audio["magnitude_spectrogram"] = torch.sqrt(torch.square(torch.real(complex_out)) + torch.square(torch.imag(complex_out)))
     audio["phase_spectrogram"] = torch.atan2(torch.imag(complex_out), torch.real(complex_out))
     audio["power_spectrogram"] = torch.square(audio["magnitude_spectrogram"])
-    audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
+    # audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
     audio["num_spectrogram_frames"] = audio["power_spectrogram"].shape[-1]
     analysis.analyzer(audio)
     del audio["power_spectrogram"]
@@ -97,7 +97,7 @@ def make_feature_frame(fft_mags, fft_phases, sample_rate):
         "sample_rate": sample_rate
     }
     vector["power_spectrogram"] = torch.square(vector["magnitude_spectrogram"])
-    vector["melscale_spectrogram"] = melscale_transform(vector["power_spectrogram"])
+    # vector["melscale_spectrogram"] = melscale_transform(vector["power_spectrogram"])
     vector["num_spectrogram_frames"] = 1
     analysis.analyzer(vector)
     del vector["power_spectrogram"]
