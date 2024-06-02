@@ -139,7 +139,7 @@ if __name__ == "__main__":
     ROOT_PATH = "/Users/jmartin50/audio_generator"
     ROOT_PATH = "."    
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
-    FILE_NAME = os.path.join(ROOT_PATH, "data/model1.json")  # The path to the model metadata JSON file
+    FILE_NAME = os.path.join(ROOT_PATH, "data/model2.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
     NUM_EPOCHS = 1000                                        # The number of epochs to train
     LEARNING_RATE = 0.001                                    # The model learning rate
@@ -156,8 +156,8 @@ if __name__ == "__main__":
             "training_sequence_length": 20,
             "num_layers": 2,
             "hidden_size": 1024,
-            "batch_size": 100,
-            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_1.pth"),
+            "batch_size": 500,
+            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_2.pth"),
             "num_features": featurizer.NUM_FEATURES,
             "output_size": featurizer.FFT_SIZE + 2,
             "loss": None,

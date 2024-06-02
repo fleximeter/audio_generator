@@ -13,9 +13,9 @@ import torch
 import torchaudio
 
 
-FFT_SIZE = 1024
+FFT_SIZE = 128
 NUM_MELS = FFT_SIZE // 16
-NUM_FEATURES = NUM_MELS + 12
+NUM_FEATURES = FFT_SIZE + 2 + 12
 
 
 class RobustScaler:
@@ -37,7 +37,7 @@ def featurize(audio) -> list:
     Loads an audio file and featurizes it
     :param audio: The audio to load
     """
-    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=None)
+    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=None, normalized=True)
     melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=FFT_SIZE // 2 + 1)
     complex_out = spectrogram_transform(audio["audio"])
     audio["magnitude_spectrogram"] = torch.sqrt(torch.square(torch.real(complex_out)) + torch.square(torch.imag(complex_out)))
@@ -113,7 +113,8 @@ def make_feature_vector(feature_dict):
     sequence = []
     for i in range(feature_dict["num_spectrogram_frames"]):
         element = torch.hstack((
-            feature_dict["melscale_spectrogram"][0, :, i],
+            feature_dict["magnitude_spectrogram"][0, :, i],
+            feature_dict["phase_spectrogram"][0, :, i],
             feature_dict["spectral_centroid"][0, i],
             feature_dict["spectral_entropy"][0, i],
             feature_dict["spectral_flatness"][0, i],
@@ -150,7 +151,8 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
         for k in range(j-n, j):
             # The features
             element = torch.hstack((
-                featurized_audio["melscale_spectrogram"][0, :, k],
+                featurized_audio["magnitude_spectrogram"][0, :, k],
+                featurized_audio["phase_spectrogram"][0, :, k],
                 featurized_audio["spectral_centroid"][0, k],
                 featurized_audio["spectral_entropy"][0, k],
                 featurized_audio["spectral_flatness"][0, k],

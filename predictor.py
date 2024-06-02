@@ -35,8 +35,8 @@ if __name__ == "__main__":
     #######################################################################################
 
     PROMPT_FILE = "./data/train/sample.48.Viola.pizz.sulC.ff.C3B3.mono.wav"
-    MODEL_METADATA_FILE = "./data/model1.json"
-    FRAMES_TO_PREDICT = 25
+    MODEL_METADATA_FILE = "./data/model2.json"
+    FRAMES_TO_PREDICT = 100
     START_FRAME = 100
 
     #######################################################################################
@@ -59,6 +59,7 @@ if __name__ == "__main__":
         # Discard all frames beyond the first N frames
         audio["magnitude_spectrogram"] = audio["magnitude_spectrogram"][:, :, :START_FRAME]
         audio["phase_spectrogram"] = audio["phase_spectrogram"][:, :, :START_FRAME]
+        audio["num_spectrogram_frames"] = START_FRAME
     except Exception as e:
         abort = True
         print("ERROR: Could not read the audio prompt file. Aborting.")
@@ -82,6 +83,14 @@ if __name__ == "__main__":
             new_audio_frames.append(featurizer.make_feature_frame(predicted[:predicted.numel()//2], predicted[predicted.numel()//2:], audio["sample_rate"]))
             new_feature_vector = featurizer.make_feature_vector(new_audio_frames[-1])
             feature_vectors = torch.hstack((feature_vectors, new_feature_vector))
+
+        with open("data/outdata.json", "w") as out_json:
+            new_mags = []
+            new_phases = []
+            for frame in new_audio_frames:
+                new_mags.append(frame["magnitude_spectrogram"].tolist())
+                new_phases.append(frame["phase_spectrogram"].tolist())
+            out_json.write(json.dumps([new_mags, new_phases]))
 
         output_mag_spectrum = [audio["magnitude_spectrogram"]]
         output_phase_spectrum = [audio["phase_spectrogram"]]
