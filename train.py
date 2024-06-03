@@ -141,8 +141,8 @@ if __name__ == "__main__":
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
     FILE_NAME = os.path.join(ROOT_PATH, "data/model3.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
-    NUM_EPOCHS = 1000                                        # The number of epochs to train
-    LEARNING_RATE = 0.003                                    # The model learning rate
+    NUM_EPOCHS = 100                                        # The number of epochs to train
+    LEARNING_RATE = 0.001                                    # The model learning rate
     NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
     PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
     MODEL_SAVE_INTERVAL = 10                                 # The epoch interval for saving the model
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             "path": FILE_NAME,
             "training_sequence_length": 10,
             "num_layers": 4,
-            "hidden_size": 1024,
+            "hidden_size": 256,
             "batch_size": 500,
             "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_3.pth"),
             "num_features": featurizer.NUM_FEATURES,
