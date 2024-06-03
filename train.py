@@ -142,14 +142,14 @@ if __name__ == "__main__":
     FILE_NAME = os.path.join(ROOT_PATH, "data/model3.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
     NUM_EPOCHS = 1000                                        # The number of epochs to train
-    LEARNING_RATE = 0.001                                    # The model learning rate
+    LEARNING_RATE = 0.003                                    # The model learning rate
     NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
     PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
     MODEL_SAVE_INTERVAL = 10                                 # The epoch interval for saving the model
     model_metadata = None
     
     # The model metadata - load it from file if it exists already
-    if (RETRAIN and not os.path.exists(FILE_NAME)) or not RETRAIN:
+    if not RETRAIN:
         model_metadata = {
             "model_name": "audio",
             "path": FILE_NAME,

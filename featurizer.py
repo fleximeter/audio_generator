@@ -166,6 +166,9 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
                 featurized_audio["spectral_skewness"][0, k],
                 featurized_audio["spectral_kurtosis"][0, k]
             ))
+            z = torch.isnan(element)
+            if z.any():
+                print(torch.nonzero(z))
             sequence.append(element)
         x.append(torch.vstack(sequence))
 
