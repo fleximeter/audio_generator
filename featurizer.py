@@ -56,6 +56,11 @@ def load_audio_file(file_name: str) -> dict:
     :return: An audio file dictionary
     """
     audio, sample_rate = torchaudio.load(file_name)
+
+    # Mix down stereo file
+    if audio.shape[0] > 1:
+        audio = torch.unsqueeze(torch.sum(audio, dim=0), 0)
+
     audio_dictionary = {
         "name": os.path.split(file_name)[-1],
         "path": file_name,
@@ -63,8 +68,9 @@ def load_audio_file(file_name: str) -> dict:
         "audio": audio,
         "frames": audio.shape[-1],
         "duration": audio.shape[-1] / sample_rate,
-        "channels": audio.shape[-2]
+        "channels": audio.shape[0]
     }
+
     featurize(audio_dictionary)
     return audio_dictionary
 
