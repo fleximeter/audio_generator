@@ -30,3 +30,6 @@ To install on a Python virtualenv, run `pip install music21 numpy pytorch pytorc
 `predictor.py` - Contains functionality for making predictions based on a sequence of audio frames and a given model.
 
 `train.py` - Contains functionality for training models.
+
+## Other notes
+The `caudiopython` modules are included in this repo because of compatibility issues with building Cython packages on the Argon HPC system at the University of Iowa.
