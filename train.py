@@ -139,13 +139,13 @@ if __name__ == "__main__":
     ROOT_PATH = "/Users/jmartin50/audio_generator"
     ROOT_PATH = "."    
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
-    FILE_NAME = os.path.join(ROOT_PATH, "data/model3.json")  # The path to the model metadata JSON file
+    FILE_NAME = os.path.join(ROOT_PATH, "data/model4.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
-    NUM_EPOCHS = 100                                        # The number of epochs to train
+    NUM_EPOCHS = 5000                                        # The number of epochs to train
     LEARNING_RATE = 0.001                                    # The model learning rate
     NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
-    PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
-    MODEL_SAVE_INTERVAL = 10                                 # The epoch interval for saving the model
+    PRINT_UPDATE_INTERVAL = 10                               # The epoch interval for printing training status
+    MODEL_SAVE_INTERVAL = 20                                 # The epoch interval for saving the model
     model_metadata = None
     
     # The model metadata - load it from file if it exists already
@@ -154,10 +154,10 @@ if __name__ == "__main__":
             "model_name": "audio",
             "path": FILE_NAME,
             "training_sequence_length": 10,
-            "num_layers": 4,
+            "num_layers": 2,
             "hidden_size": 256,
             "batch_size": 500,
-            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_3.pth"),
+            "state_dict": os.path.join(ROOT_PATH, "data/audio_sequencer_4.pth"),
             "num_features": featurizer.NUM_FEATURES,
             "output_size": featurizer.FFT_SIZE + 2,
             "loss": None,

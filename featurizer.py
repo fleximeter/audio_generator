@@ -6,7 +6,7 @@ and for postprocessing generated data. It also has a dataset class for storing
 sequences.
 """
 
-import analysis
+import caudiopython.analysis as analysis
 import numpy as np
 import os
 import torch
@@ -15,7 +15,7 @@ import torchaudio
 
 FFT_SIZE = 1024
 NUM_MELS = FFT_SIZE // 16
-NUM_FEATURES = FFT_SIZE + 2 + 12
+NUM_FEATURES = FFT_SIZE + 2 + 10
 
 
 class RobustScaler:
@@ -32,7 +32,7 @@ class RobustScaler:
         return (data - self.median) / self.iqr
         
 
-def featurize(audio) -> list:
+def featurize(audio):
     """
     Loads an audio file and featurizes it
     :param audio: The audio to load
@@ -124,8 +124,6 @@ def make_feature_vector(feature_dict):
             feature_dict["spectral_centroid"][0, i],
             feature_dict["spectral_entropy"][0, i],
             feature_dict["spectral_flatness"][0, i],
-            feature_dict["spectral_slope"][0, i],
-            feature_dict["spectral_y_int"][0, i],
             feature_dict["spectral_roll_off_0.5"][0, i],
             feature_dict["spectral_roll_off_0.75"][0, i],
             feature_dict["spectral_roll_off_0.9"][0, i],
@@ -162,8 +160,6 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
                 featurized_audio["spectral_centroid"][0, k],
                 featurized_audio["spectral_entropy"][0, k],
                 featurized_audio["spectral_flatness"][0, k],
-                featurized_audio["spectral_slope"][0, k],
-                featurized_audio["spectral_y_int"][0, k],
                 featurized_audio["spectral_roll_off_0.5"][0, k],
                 featurized_audio["spectral_roll_off_0.75"][0, k],
                 featurized_audio["spectral_roll_off_0.9"][0, k],
