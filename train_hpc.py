@@ -1,5 +1,7 @@
 """
-File: train.py
+File: train_hpc.py
+
+This file is modified to run on the University of Iowa Argon high-performance computing system.
 
 This module trains the music sequence generator. You can either train a model from
 scratch, or you can choose to continue training a model that was previously saved
@@ -11,7 +13,7 @@ import datetime
 import json
 import featurizer
 import model_definition
-from pathlib import Path
+import os
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
@@ -140,15 +142,16 @@ if __name__ == "__main__":
     # You may want to edit the details below (for example, to specify file names)
     ###############################################################################
 
-    MODEL_SUFFIX = "_8_13_24"                     # The suffix for the current model
-    TRAINING_PATH = "data/train"                  # The path to the training corpus
-    FILE_NAME = f"data/model{MODEL_SUFFIX}.json"  # The path to the model metadata JSON file
-    RETRAIN = False                               # Whether or not to continue training the same model
-    NUM_EPOCHS = 5000                             # The number of epochs to train
-    LEARNING_RATE = 0.001                         # The model learning rate
-    NUM_DATALOADER_WORKERS = 4                    # The number of workers for the dataloader
-    PRINT_UPDATE_INTERVAL = 10                    # The epoch interval for printing training status
-    MODEL_SAVE_INTERVAL = 20                      # The epoch interval for saving the model
+    MODEL_SUFFIX = "_8_13_24"                                # The suffix for the current model
+    ROOT_PATH = "/Users/jmartin50/audio_generator"           # The root path for this repository
+    TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
+    FILE_NAME = os.path.join(ROOT_PATH, f"data/model{MODEL_SUFFIX}.json")  # The path to the model metadata JSON file
+    RETRAIN = False                                          # Whether or not to continue training the same model
+    NUM_EPOCHS = 5000                                        # The number of epochs to train
+    LEARNING_RATE = 0.001                                    # The model learning rate
+    NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
+    PRINT_UPDATE_INTERVAL = 10                               # The epoch interval for printing training status
+    MODEL_SAVE_INTERVAL = 20                                 # The epoch interval for saving the model
     model_metadata = None
     
     # The model metadata - load it from file if it exists already
@@ -160,7 +163,7 @@ if __name__ == "__main__":
             "num_layers": 2,
             "hidden_size": 256,
             "batch_size": 500,
-            "state_dict": f"data/audio_sequencer{MODEL_SUFFIX}.pth",
+            "state_dict": os.path.join(ROOT_PATH, f"data/audio_sequencer{MODEL_SUFFIX}.pth"),
             "num_features": featurizer.NUM_FEATURES,
             "output_size": featurizer.FFT_SIZE + 2,
             "loss": None,
@@ -170,11 +173,11 @@ if __name__ == "__main__":
     else:
         with open(FILE_NAME, "r") as model_json_file:
             model_metadata = json.loads(model_json_file.read())
-    
+
     ###############################################################################
     # You shouldn't need to edit anything below here.
     ###############################################################################
-    
+
     # Load the dataset
     print("Loading dataset...")
     sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], 

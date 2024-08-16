@@ -77,7 +77,7 @@ def save_predicted_audio(audio, new_audio_frames, file_name):
         output_phase_spectrum.append(frame["phase_spectrogram"])
     output_mag_spectrum = torch.cat(output_mag_spectrum, dim=2)
     output_phase_spectrum = torch.cat(output_phase_spectrum, dim=2)
-
+    
     # Assemble into a complex STFT spectrum
     output_complex_spectrum = torch.cos(output_phase_spectrum) * output_mag_spectrum + 1j * torch.sin(output_phase_spectrum) * output_mag_spectrum
     
@@ -92,10 +92,10 @@ if __name__ == "__main__":
     # YOU WILL NEED TO EDIT THIS MANUALLY
     #######################################################################################
 
-    PROMPT_FILE = "./data/train/sample.48.Viola.pizz.sulC.ff.C3B3.mono.wav"
+    PROMPT_FILE = "./data/train/217800__minian89__wind_chimes_eq.wav"
     MODEL_METADATA_FILE = "./data/model3.json"
     NUM_FRAMES_TO_PREDICT = 100
-    START_FRAME_FOR_PREDICTION = 100
+    START_FRAME_FOR_PREDICTION = 30
 
     #######################################################################################
     # YOU PROBABLY DON'T NEED TO EDIT ANYTHING BELOW HERE
