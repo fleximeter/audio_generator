@@ -143,7 +143,7 @@ if __name__ == "__main__":
     ###############################################################################
 
     MODEL_SUFFIX = "_8_13_24"                                # The suffix for the current model
-    ROOT_PATH = "/Users/jmartin50/audio_generator"           # The root path for this repository
+    ROOT_PATH = "/Users/jmartin50/source/audio_generator"    # The root path for this repository
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
     FILE_NAME = os.path.join(ROOT_PATH, f"data/model{MODEL_SUFFIX}.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
