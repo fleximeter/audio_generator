@@ -6,7 +6,7 @@ and for postprocessing generated data. It also has a dataset class for storing
 sequences.
 """
 
-import caudiopython.analysis as analysis
+import caus.analysis as analysis
 import numpy as np
 import os
 import torch
@@ -40,13 +40,29 @@ def featurize(audio):
     spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=None, normalized=True)
     melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=FFT_SIZE // 2 + 1)
     complex_out = spectrogram_transform(audio["audio"])
-    audio["magnitude_spectrogram"] = torch.sqrt(torch.square(torch.real(complex_out)) + torch.square(torch.imag(complex_out)))
-    audio["phase_spectrogram"] = torch.atan2(torch.imag(complex_out), torch.real(complex_out))
-    audio["power_spectrogram"] = torch.square(audio["magnitude_spectrogram"])
+    audio["magnitude_spectrogram"] = torch.sqrt(torch.square(torch.real(complex_out)) + torch.square(torch.imag(complex_out))).numpy()
+    audio["phase_spectrogram"] = torch.atan2(torch.imag(complex_out), torch.real(complex_out)).numpy()
+    audio["power_spectrogram"] = np.square(audio["magnitude_spectrogram"])
     # audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
     audio["num_spectrogram_frames"] = audio["power_spectrogram"].shape[-1]
-    analysis.analyzer(audio)
-    del audio["power_spectrogram"]
+    analysis.analyzer(audio, FFT_SIZE)
+    audio["magnitude_spectrogram"] = torch.from_numpy(audio["magnitude_spectrogram"])
+    audio["phase_spectrogram"] = torch.from_numpy(audio["phase_spectrogram"])
+    audio["power_spectrogram"] = torch.from_numpy(audio["power_spectrogram"])
+    audio["spectral_centroid"] = torch.from_numpy(audio["spectral_centroid"])
+    audio["spectral_variance"] = torch.from_numpy(audio["spectral_variance"])
+    audio["spectral_skewness"] = torch.from_numpy(audio["spectral_skewness"])
+    audio["spectral_kurtosis"] = torch.from_numpy(audio["spectral_kurtosis"])
+    audio["spectral_entropy"] = torch.from_numpy(audio["spectral_entropy"])
+    audio["spectral_flatness"] = torch.from_numpy(audio["spectral_flatness"])
+    audio["spectral_roll_off_0.5"] = torch.from_numpy(audio["spectral_roll_off_0.5"])
+    audio["spectral_roll_off_0.75"] = torch.from_numpy(audio["spectral_roll_off_0.75"])
+    audio["spectral_roll_off_0.9"] = torch.from_numpy(audio["spectral_roll_off_0.9"])
+    audio["spectral_roll_off_0.95"] = torch.from_numpy(audio["spectral_roll_off_0.95"])
+    audio["spectral_slope"] = torch.from_numpy(audio["spectral_slope"])
+    audio["spectral_slope_0:1kHz"] = torch.from_numpy(audio["spectral_slope_0:1kHz"])
+    audio["spectral_slope_1:5kHz"] = torch.from_numpy(audio["spectral_slope_1:5kHz"])
+    audio["spectral_slope_0:5kHz"] = torch.from_numpy(audio["spectral_slope_0:5kHz"])
 
 
 def load_audio_file(file_name: str) -> dict:

@@ -14,7 +14,7 @@ np.seterr(divide="ignore")
 _rng = random.Random()
  
 
-@cython.cfunc
+
 def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: cython.int = -1, window="hanning", max_window_size: cython.int = -1):
     """
     Extracts a single grain from an array of samples.
@@ -52,7 +52,7 @@ def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: c
     return grain * window
 
 
-@cython.cfunc
+
 def find_max_grain_dbfs(grains: list):
     """
     Finds the maximum overall dbfs (by grain) of a list of grains. Useful
@@ -71,7 +71,7 @@ def find_max_grain_dbfs(grains: list):
     return max_dbfs
 
 
-@cython.cfunc
+
 def merge_grains(grains: list, overlap_size: cython.int = 10):
     """
     Merges a list of grains, with some overlap between grains
@@ -87,7 +87,7 @@ def merge_grains(grains: list, overlap_size: cython.int = 10):
     return output
 
 
-@cython.cfunc
+
 def scale_grain_peaks(grains: list):
     """
     Scales the peaks of a list of grains so they all have the same peak amplitude.

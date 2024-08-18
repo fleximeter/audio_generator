@@ -19,9 +19,10 @@ http://midi.teragonaudio.com/tech/aiff.htm (AIFF)
 
 import numpy as np
 import math
-import struct
+import os
 import pedalboard as pb
 import re
+import struct
 
 LARGE_FIELD = 4
 SMALL_FIELD = 2
@@ -149,6 +150,27 @@ def convert(file: AudioFile, format: str):
         file.bytes_per_sample = format_bits // 8
 
 
+def find_files(directory_name: str) -> list:
+    """
+    Finds all WAV and AIFF files within a directory (and its subdirectories, if recurse=True)
+
+    :param directory_name: The directory name
+    :param format: The destination format (supported formats are 'int16', 'int24', 'int32', 'float32',
+    and 'float64')
+    :return: A list of file names
+    """
+    files_audio = []
+    search = re.compile(r"(\.wav$)|(\.aif$)|(\.aiff$)")
+
+    for path, subdirectories, files in os.walk(directory_name):
+        for name in files:
+            result = search.search(name)
+            if result:
+                files_audio.append(os.path.join(path, name))
+
+    return files_audio
+
+
 def read(file_name: str) -> AudioFile:
     """
     Reads an audio file (AIFF or WAV) and returns an AudioFile object containing the contents of the
@@ -158,15 +180,15 @@ def read(file_name: str) -> AudioFile:
     """
     audio = None
     if re.search(r'(\.aif$)|(\.aiff$)', file_name):
-        audio = read_aiff(file_name, True)
+        audio = _read_aiff(file_name, True)
     elif re.search(r'\.wav$', file_name):
-        audio = read_wav(file_name, True)
+        audio = _read_wav(file_name, True)
     with pb.io.AudioFile(file_name, 'r') as infile:
         audio.samples = infile.read(infile.frames)
     return audio
 
 
-def read_aiff(file_name: str, header_only=False) -> AudioFile:
+def _read_aiff(file_name: str, header_only=False) -> AudioFile:
     """
     Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 64-bit. Larger files could be supported, but who would 
@@ -258,7 +280,7 @@ def read_aiff(file_name: str, header_only=False) -> AudioFile:
         raise RuntimeWarning(f"The AIFF file {file_name} was unusually formatted and could not be read.")
 
 
-def read_wav(file_name: str, header_only=False) -> AudioFile:
+def _read_wav(file_name: str, header_only=False) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 32-bit and float files up to 64-bit. Larger files could
@@ -317,26 +339,23 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
 
                 # If we've read the FMT chunk
                 if subchunk_header[:4] == FMT_CHUNK_1:
-                    # Verify that the format is valid. We only support formats 1 and 3 at the moment (PCM and float).
                     audio_file.audio_format = int.from_bytes(subchunk_data[:2], byteorder="little", signed=False)
-                    if audio_file.audio_format != 1 and audio_file.audio_format != 3:
-                        valid_file = False
-                        print(f"Bad audio format: {audio_file.audio_format}")
-                        
-                    # If the format is PCM, we continue and read the rest of the format subchunk
-                    else:
-                        audio_file.num_channels = int.from_bytes(subchunk_data[2:4], byteorder="little", signed=False)                    
-                        audio_file.sample_rate = int.from_bytes(subchunk_data[4:8], byteorder="little", signed=False)
-                        audio_file.byte_rate = int.from_bytes(subchunk_data[8:12], byteorder="little", signed=False)
-                        audio_file.block_align = int.from_bytes(subchunk_data[12:14], byteorder="little", signed=False)
-                        audio_file.bits_per_sample = int.from_bytes(subchunk_data[14:16], byteorder="little", signed=False)
-                        audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
+                    audio_file.num_channels = int.from_bytes(subchunk_data[2:4], byteorder="little", signed=False)                    
+                    audio_file.sample_rate = int.from_bytes(subchunk_data[4:8], byteorder="little", signed=False)
+                    audio_file.byte_rate = int.from_bytes(subchunk_data[8:12], byteorder="little", signed=False)
+                    audio_file.block_align = int.from_bytes(subchunk_data[12:14], byteorder="little", signed=False)
+                    audio_file.bits_per_sample = int.from_bytes(subchunk_data[14:16], byteorder="little", signed=False)
+                    audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
 
                 # Detect if we've read a data subchunk. If this is something else
                 # (e.g. a JUNK subchunk), we ignore it.
                 elif subchunk_header[:4] == DATA_CHUNK_1:
-                    audio_file.frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
-                    audio_file.duration = audio_file.frames / audio_file.sample_rate
+                    if audio_file.num_channels * audio_file.bytes_per_sample > 0:
+                        audio_file.frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
+                        audio_file.duration = audio_file.frames / audio_file.sample_rate
+                    else:
+                        audio_file.frames = 1
+                        audio_file.duration = 1
 
                     if header_only:
                         remaining_size = 0
@@ -389,7 +408,7 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
         raise RuntimeWarning(f"The WAV file {file_name} was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
     
 
-def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
+def _write_wav(file: AudioFile, path: str, write_junk_chunk=False):
     """
     Writes an audio file. Note that the audio_format must match the format used! For example,
     you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.
@@ -469,7 +488,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
             raise Exception(message="Invalid audio format.")
 
 
-def write_aiff(file: AudioFile, path: str):
+def _write_aiff(file: AudioFile, path: str):
     """
     Writes an audio file. Note that the audio_format must match the format used! For example,
     you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.

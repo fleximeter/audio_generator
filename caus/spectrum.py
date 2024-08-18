@@ -8,10 +8,11 @@ This file contains functionality for spectral analysis.
 
 import cython
 import numpy as np
+from typing import Tuple
 
 
-@cython.cfunc
-def fft_data_decompose(fft_data: np.ndarray):
+
+def fft_data_decompose(fft_data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Decomposes FFT data from a Numpy array into arrays of amplitudes and phases.
     This function can handle Numpy arrays of any dimension.
@@ -23,8 +24,8 @@ def fft_data_decompose(fft_data: np.ndarray):
     return amps, phases
 
 
-@cython.cfunc
-def fft_data_recompose(amps: np.ndarray, phases: np.ndarray):
+
+def fft_data_recompose(amps: np.ndarray, phases: np.ndarray) -> np.ndarray:
     """
     Recomposes FFT data from arrays of amplitudes and phases
     This function can handle Numpy arrays of any dimension.
