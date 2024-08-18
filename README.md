@@ -8,11 +8,11 @@ The default training device is CUDA, and MPS is the first fallback, with a CPU a
 
 ## Setup
 You will need to install the following packages to use this repository:
-`Cython`, `numpy`, `torch`, `torchaudio`, `regex`, and `scikit-learn`.
+`Cython`, `numpy`, `torch`, `torchaudio`, `regex`, and `soundfile`.
 
 Visit https://pytorch.org/get-started/locally/ for PyTorch installation instructions (this is a good idea if you want to use CUDA).
 
-You will also need to compile the Cython code in the `caudiopython` directory. Run the command `python setup.py build_ext --inplace`.
+You will also need to compile the Cython code in the `caus` directory. Run the command `python setup.py build_ext --inplace`.
 
 ## Training a model
 Install the dependencies listed above, and compile the Cython code, then follow these steps:

@@ -19,21 +19,21 @@ def analyzer(audio: dict, fft_size: int) -> dict:
     The analysis is done in-place.
     :param audio: An audio dictionary
     """
-    audio["spectral_centroid"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_variance"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_skewness"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_kurtosis"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_entropy"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_flatness"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_roll_off_0.5"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_roll_off_0.75"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_roll_off_0.9"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_roll_off_0.95"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_slope"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_slope_0:1kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_slope_1:5kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["spectral_slope_0:5kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
-    audio["zero_crossing_rate"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]))
+    audio["spectral_centroid"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_variance"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_skewness"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_kurtosis"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_entropy"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_flatness"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.5"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.75"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.9"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.95"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope_0:1kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope_1:5kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope_0:5kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["zero_crossing_rate"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
 
     i: cython.int
     j: cython.int
