@@ -93,7 +93,7 @@ if __name__ == "__main__":
     #######################################################################################
 
     PROMPT_FILE = "./data/train/217800__minian89__wind_chimes_eq.wav"
-    MODEL_METADATA_FILE = "./data/model3.json"
+    MODEL_METADATA_FILE = "./data/model_8_13_24.json"
     NUM_FRAMES_TO_PREDICT = 100
     START_FRAME_FOR_PREDICTION = 30
 
@@ -139,4 +139,4 @@ if __name__ == "__main__":
             out_json.write(json.dumps([new_mags, new_phases]))
 
         # Save the new audio to file
-        save_predicted_audio(audio, new_audio_frame_dictionaries, "data/output1.wav")
+        save_predicted_audio(audio, new_audio_frame_dictionaries, "data/output_10_22_24.wav")

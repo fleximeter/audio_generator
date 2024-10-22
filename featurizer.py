@@ -116,12 +116,13 @@ def make_feature_frame(fft_mags, fft_phases, sample_rate):
     vector = {
         "magnitude_spectrogram": torch.reshape(fft_mags, (1, fft_mags.shape[-1], 1)),
         "phase_spectrogram": torch.reshape(fft_phases, (1, fft_phases.shape[-1], 1)),
-        "sample_rate": sample_rate
+        "sample_rate": sample_rate,
+        "channels": 1
     }
     vector["power_spectrogram"] = torch.square(vector["magnitude_spectrogram"])
     # vector["melscale_spectrogram"] = melscale_transform(vector["power_spectrogram"])
     vector["num_spectrogram_frames"] = 1
-    analysis.analyzer(vector)
+    analysis.analyzer(vector, FFT_SIZE)
     del vector["power_spectrogram"]
     return vector
 
