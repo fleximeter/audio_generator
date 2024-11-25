@@ -19,11 +19,6 @@ Install the dependencies listed above, and compile the Cython code, then follow 
 1. Specify the location of your audio corpus in the `train.py` file, using the `TRAINING_PATH` variable.
 2. Run the `train.py` program. NOTE: Before running, make sure that file locations are correctly specified.
 
-While training, the model will routinely save its state to a file, specified in the model metadata dictionary. Once the model has saved its state for the first time, you can start making predictions as the model continues to train and periodically updates its state file.
-
-## Making predictions
-To make predictions, you run the `predictor.py` program. You will need to specify the location of the audio prompt file, as well as the location of the model.
-
 ## File descriptions
 `corpus.py` - Contains functionality for loading all audio files in a given directory.
 
