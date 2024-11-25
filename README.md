@@ -1,7 +1,7 @@
 # Audio Generator
 
 ## About
-This repository is an in-progress generative AI system for producing the next FFT frame in an audio file. It can train models on a collection of audio files. The architecture is the PyTorch LSTM architecture, and it will likely need considerable resources for training if you want an acceptable model. Predictions generate output logits that consist of the magnitude and phase spectrums concatenated.
+This repository is an in-progress generative AI system for producing the next FFT frame in an audio file.
 
 ## Resource needs
 The default training device is CUDA, and MPS is the first fallback, with a CPU as the last-level default. When training, the estimated time remaining is output. This helps with gauging resource consumption.
