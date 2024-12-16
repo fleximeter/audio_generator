@@ -27,6 +27,7 @@ def load_file_for_prediction(file, start_frame, end_frame) -> dict:
         audio["magnitude_spectrogram"] = audio["magnitude_spectrogram"][:, :, start_frame:end_frame]
         audio["phase_spectrogram"] = audio["phase_spectrogram"][:, :, start_frame:end_frame]
         audio["num_spectrogram_frames"] = end_frame - start_frame
+        featurizer.featurize(audio)
         return audio
     except Exception as e:
         print("ERROR: Could not read the audio prompt file. Aborting.")
@@ -109,7 +110,7 @@ if __name__ == "__main__":
 
     # If no errors in loading the files
     if audio is not None and model_metadata is not None:
-        feature_matrix = featurizer.make_feature_vector(audio)
+        feature_matrix = featurizer.make_feature_matrix(audio)
         new_audio_frame_dictionaries = []
         
         # Load the model state dictionary from file
@@ -126,7 +127,7 @@ if __name__ == "__main__":
             
             # Get a new audio frame dictionary, and append the featurized audio to the feature matrix
             new_audio_frame_dictionaries.append(featurizer.make_feature_frame(predicted[:predicted.numel()//2], predicted[predicted.numel()//2:], audio["sample_rate"]))
-            new_feature_vector = featurizer.make_feature_vector(new_audio_frame_dictionaries[-1])
+            new_feature_vector = featurizer.make_feature_matrix(new_audio_frame_dictionaries[-1])
             feature_matrix = torch.cat((feature_matrix, new_feature_vector), dim=1)
 
         # Dump data to file for inspection

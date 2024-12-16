@@ -57,9 +57,15 @@ class AudioDataset(Dataset):
         Loads the files and generates sequences and labels from them
         :param directory: A list of NumPy audio arrays to turn into a dataset
         """
+        # These lists hold feature matrices and their associated labels.
         sequences = []
         labels = []
+
+        # Load the audio corpus. audio_corpus is a list of audio file dictionaries,
+        # which hold audio file information and the sample array.
         audio_corpus = corpus.load_audio(directory)
+
+        # Featurize each audio file dictionary
         ds_list = []
         for audio in audio_corpus:
             featurizer.featurize(audio)
@@ -76,6 +82,7 @@ class AudioDataset(Dataset):
 
         # self.data_scaler = featurizer.RobustScaler(self.mean, self.iqr)
 
+        # Make n-gram sequences from each audio file
         for audio in audio_corpus:
             file_sequences, file_labels = featurizer.make_n_gram_sequences(audio, self.sequence_length)
             sequences += file_sequences

@@ -32,11 +32,13 @@ class RobustScaler:
         return (data - self.median) / self.iqr
         
 
-def featurize(audio):
+def featurize(audio: dict):
     """
-    Loads an audio file and featurizes it
-    :param audio: The audio to load
+    Adds additional feature information to an audio file dictionary.
+    The additional information includes the STFT spectrogram and spectral features.
+    :param audio: The audio file dictionary to featurize
     """
+    # Get the STFT data from the audio file and add it to the audio file dictionary
     spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=None, normalized=True)
     melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=FFT_SIZE // 2 + 1)
     complex_out = spectrogram_transform(audio["audio"])
@@ -45,6 +47,8 @@ def featurize(audio):
     audio["power_spectrogram"] = np.square(audio["magnitude_spectrogram"])
     # audio["melscale_spectrogram"] = melscale_transform(audio["power_spectrogram"])
     audio["num_spectrogram_frames"] = audio["power_spectrogram"].shape[-1]
+    
+    # Analyze the audio file
     analysis.analyzer(audio, FFT_SIZE)
     audio["magnitude_spectrogram"] = torch.from_numpy(audio["magnitude_spectrogram"])
     audio["phase_spectrogram"] = torch.from_numpy(audio["phase_spectrogram"])
@@ -67,15 +71,15 @@ def featurize(audio):
 
 def load_audio_file(file_name: str) -> dict:
     """
-    Loads an audio file
+    Reads an audio file and featurizes it. Returns the audio file dictionary.
     :param file_name: The file name
     :return: An audio file dictionary
     """
     audio, sample_rate = torchaudio.load(file_name)
 
     # Mix down stereo file
-    if audio.shape[0] > 1:
-        audio = torch.unsqueeze(torch.sum(audio, dim=0), 0)
+    if audio.ndim == 2:
+        audio = torch.sum(audio, dim=0)
 
     audio_dictionary = {
         "name": os.path.split(file_name)[-1],
@@ -84,7 +88,7 @@ def load_audio_file(file_name: str) -> dict:
         "audio": audio,
         "frames": audio.shape[-1],
         "duration": audio.shape[-1] / sample_rate,
-        "channels": audio.shape[0]
+        "channels": 1
     }
 
     featurize(audio_dictionary)
@@ -106,9 +110,10 @@ def prepare_robust_scaler(tensor_list):
 
 def make_feature_frame(fft_mags, fft_phases, sample_rate):
     """
-    Makes a feature dictionary for a FFT frame
-    :param fft_mags: The FFT magnitudes
-    :param fft_phases: The FFT phases
+    Makes a feature dictionary for a FFT frame. This is needed if we have
+    predicted a FFT frame and need to produce features for it.
+    :param fft_mags: The FFT magnitude spectrum
+    :param fft_phases: The FFT phase spectrum
     :param sample_rate: The sample rate
     :return: The feature dictionary
     """
@@ -127,11 +132,13 @@ def make_feature_frame(fft_mags, fft_phases, sample_rate):
     return vector
 
 
-def make_feature_vector(feature_dict):
+def make_feature_matrix(feature_dict):
     """
-    Makes a feature vector for a feature frame
+    Makes a feature matrix for a feature frame. This matrix can then be concatenated
+    to an existing feature matrix for a N-gram sequence to extend the sequence.
+    The most obvious use for this is to create a vector for a single FFT frame.
     :param feature_dict: The feature frame
-    :return: The feature vector
+    :return: The feature matrix. If a vector, the first dimension will have size 1.
     """
     sequence = []
     for i in range(feature_dict["num_spectrogram_frames"]):
@@ -151,15 +158,15 @@ def make_feature_vector(feature_dict):
         ))
         sequence.append(element)
     sequence = torch.vstack(sequence)
-    return torch.reshape(sequence, (1,) + sequence.shape)
+    return torch.reshape(sequence, (feature_dict["num_spectrogram_frames"],) + sequence.shape)
 
 
 def make_n_gram_sequences(featurized_audio, n) -> list:
     """
-    Makes N-gram sequences from a tokenized dataset
-    :param tokenized_dataset: The tokenized dataset
+    Makes N-gram sequences from an audio dictionary
+    :param featurized_audio: The audio dictionary
     :param n: The length of the n-grams
-    :return: X, y
+    :return: [X], [y]
     X is a list of N-gram tensors
       (dimension 1 is the entry in the N-gram)
       (dimension 2 has the features of the entry)
@@ -187,7 +194,7 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
             ))
             z = torch.isnan(element)
             if z.any():
-                print(torch.nonzero(z))
+                print(f"NaN found at {torch.nonzero(z)}")
             sequence.append(element)
         x.append(torch.vstack(sequence))
 
