@@ -19,47 +19,45 @@ def analyzer(audio: dict, fft_size: int) -> dict:
     The analysis is done in-place.
     :param audio: An audio dictionary
     """
-    audio["spectral_centroid"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_variance"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_skewness"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_kurtosis"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_entropy"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_flatness"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_roll_off_0.5"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_roll_off_0.75"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_roll_off_0.9"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_roll_off_0.95"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_slope"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_slope_0:1kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_slope_1:5kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["spectral_slope_0:5kHz"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
-    audio["zero_crossing_rate"] = np.zeros((audio["channels"], audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_centroid"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_variance"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_skewness"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_kurtosis"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_entropy"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_flatness"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.5"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.75"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.9"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_roll_off_0.95"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope_0:1kHz"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope_1:5kHz"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["spectral_slope_0:5kHz"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
+    audio["zero_crossing_rate"] = np.zeros((audio["num_spectrogram_frames"]), dtype=np.float32)
 
-    i: cython.int
     j: cython.int
 
-    for i in range(audio["channels"]):
-        for j in range(audio["num_spectrogram_frames"]):
-            magnitude_spectrum = audio["magnitude_spectrogram"][i, :, j]
-            magnitude_spectrum_sum = np.sum(magnitude_spectrum)
-            power_spectrum = audio["power_spectrogram"][i, :, j]
-            power_spectrum_sum = np.sum(power_spectrum)
-            spectrum_pmf = power_spectrum / power_spectrum_sum
-            rfftfreqs = scipy.fft.rfftfreq(fft_size, 1/audio["sample_rate"])
-            audio['spectral_centroid'][i, j] = spectral_centroid(magnitude_spectrum, rfftfreqs, magnitude_spectrum_sum)
-            audio['spectral_variance'][i, j] = spectral_variance(spectrum_pmf, rfftfreqs, audio['spectral_centroid'][i, j])
-            audio['spectral_skewness'][i, j] = spectral_skewness(spectrum_pmf, rfftfreqs, audio['spectral_centroid'][i, j], audio['spectral_variance'][i, j])
-            audio['spectral_kurtosis'][i, j] = spectral_kurtosis(spectrum_pmf, rfftfreqs, audio['spectral_centroid'][i, j], audio['spectral_variance'][i, j])
-            audio['spectral_entropy'][i, j] = spectral_entropy(power_spectrum)
-            audio['spectral_flatness'][i, j] = spectral_flatness(magnitude_spectrum, magnitude_spectrum_sum)
-            audio['spectral_roll_off_0.5'][i, j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.5, power_spectrum_sum)
-            audio['spectral_roll_off_0.75'][i, j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.75, power_spectrum_sum)
-            audio['spectral_roll_off_0.9'][i, j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.9, power_spectrum_sum)
-            audio['spectral_roll_off_0.95'][i, j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.95, power_spectrum_sum)
-            audio['spectral_slope'][i, j] = spectral_slope(power_spectrum)
-            audio['spectral_slope_0:1kHz'][i, j] = spectral_slope_region(power_spectrum, rfftfreqs, 0, 1000, audio["sample_rate"])
-            audio['spectral_slope_1:5kHz'][i, j] = spectral_slope_region(power_spectrum, rfftfreqs, 1000, 5000, audio["sample_rate"])
-            audio['spectral_slope_0:5kHz'][i, j] = spectral_slope_region(power_spectrum, rfftfreqs, 0, 5000, audio["sample_rate"])
+    for j in range(audio["num_spectrogram_frames"]):
+        magnitude_spectrum = audio["magnitude_spectrogram"][:, j]
+        magnitude_spectrum_sum = np.sum(magnitude_spectrum)
+        power_spectrum = audio["power_spectrogram"][:, j]
+        power_spectrum_sum = np.sum(power_spectrum)
+        spectrum_pmf = power_spectrum / power_spectrum_sum
+        rfftfreqs = scipy.fft.rfftfreq(fft_size, 1/audio["sample_rate"])
+        audio['spectral_centroid'][j] = spectral_centroid(magnitude_spectrum, rfftfreqs, magnitude_spectrum_sum)
+        audio['spectral_variance'][j] = spectral_variance(spectrum_pmf, rfftfreqs, audio['spectral_centroid'][j])
+        audio['spectral_skewness'][j] = spectral_skewness(spectrum_pmf, rfftfreqs, audio['spectral_centroid'][j], audio['spectral_variance'][j])
+        audio['spectral_kurtosis'][j] = spectral_kurtosis(spectrum_pmf, rfftfreqs, audio['spectral_centroid'][j], audio['spectral_variance'][j])
+        audio['spectral_entropy'][j] = spectral_entropy(power_spectrum)
+        audio['spectral_flatness'][j] = spectral_flatness(magnitude_spectrum, magnitude_spectrum_sum)
+        audio['spectral_roll_off_0.5'][j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.5, power_spectrum_sum)
+        audio['spectral_roll_off_0.75'][j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.75, power_spectrum_sum)
+        audio['spectral_roll_off_0.9'][j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.9, power_spectrum_sum)
+        audio['spectral_roll_off_0.95'][j] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.95, power_spectrum_sum)
+        audio['spectral_slope'][j] = spectral_slope(power_spectrum)
+        audio['spectral_slope_0:1kHz'][j] = spectral_slope_region(power_spectrum, rfftfreqs, 0, 1000, audio["sample_rate"])
+        audio['spectral_slope_1:5kHz'][j] = spectral_slope_region(power_spectrum, rfftfreqs, 1000, 5000, audio["sample_rate"])
+        audio['spectral_slope_0:5kHz'][j] = spectral_slope_region(power_spectrum, rfftfreqs, 0, 5000, audio["sample_rate"])
 
     np.nan_to_num(audio["spectral_centroid"], False)
     np.nan_to_num(audio["spectral_variance"], False)

@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # You may want to edit the details below (for example, to specify file names)
     ###############################################################################
 
-    MODEL_SUFFIX = "_8_13_24"                                # The suffix for the current model
+    MODEL_SUFFIX = "_12_15_24"                                # The suffix for the current model
     ROOT_PATH = "/Users/jmartin50/source/audio_generator"    # The root path for this repository
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
     FILE_NAME = os.path.join(ROOT_PATH, f"data/model{MODEL_SUFFIX}.json")  # The path to the model metadata JSON file

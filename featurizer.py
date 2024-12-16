@@ -143,18 +143,18 @@ def make_feature_matrix(feature_dict):
     sequence = []
     for i in range(feature_dict["num_spectrogram_frames"]):
         element = torch.hstack((
-            feature_dict["magnitude_spectrogram"][0, :, i],
-            feature_dict["phase_spectrogram"][0, :, i],
-            feature_dict["spectral_centroid"][0, i],
-            feature_dict["spectral_entropy"][0, i],
-            feature_dict["spectral_flatness"][0, i],
-            feature_dict["spectral_roll_off_0.5"][0, i],
-            feature_dict["spectral_roll_off_0.75"][0, i],
-            feature_dict["spectral_roll_off_0.9"][0, i],
-            feature_dict["spectral_roll_off_0.95"][0, i],
-            feature_dict["spectral_variance"][0, i],
-            feature_dict["spectral_skewness"][0, i],
-            feature_dict["spectral_kurtosis"][0, i]
+            feature_dict["magnitude_spectrogram"][:, i],
+            feature_dict["phase_spectrogram"][:, i],
+            feature_dict["spectral_centroid"][i],
+            feature_dict["spectral_entropy"][i],
+            feature_dict["spectral_flatness"][i],
+            feature_dict["spectral_roll_off_0.5"][i],
+            feature_dict["spectral_roll_off_0.75"][i],
+            feature_dict["spectral_roll_off_0.9"][i],
+            feature_dict["spectral_roll_off_0.95"][i],
+            feature_dict["spectral_variance"][i],
+            feature_dict["spectral_skewness"][i],
+            feature_dict["spectral_kurtosis"][i]
         ))
         sequence.append(element)
     sequence = torch.vstack(sequence)
@@ -179,18 +179,18 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
         for k in range(j-n, j):
             # The features
             element = torch.hstack((
-                featurized_audio["magnitude_spectrogram"][0, :, k],
-                featurized_audio["phase_spectrogram"][0, :, k],
-                featurized_audio["spectral_centroid"][0, k],
-                featurized_audio["spectral_entropy"][0, k],
-                featurized_audio["spectral_flatness"][0, k],
-                featurized_audio["spectral_roll_off_0.5"][0, k],
-                featurized_audio["spectral_roll_off_0.75"][0, k],
-                featurized_audio["spectral_roll_off_0.9"][0, k],
-                featurized_audio["spectral_roll_off_0.95"][0, k],
-                featurized_audio["spectral_variance"][0, k],
-                featurized_audio["spectral_skewness"][0, k],
-                featurized_audio["spectral_kurtosis"][0, k]
+                featurized_audio["magnitude_spectrogram"][:, k],
+                featurized_audio["phase_spectrogram"][:, k],
+                featurized_audio["spectral_centroid"][k],
+                featurized_audio["spectral_entropy"][k],
+                featurized_audio["spectral_flatness"][k],
+                featurized_audio["spectral_roll_off_0.5"][k],
+                featurized_audio["spectral_roll_off_0.75"][k],
+                featurized_audio["spectral_roll_off_0.9"][k],
+                featurized_audio["spectral_roll_off_0.95"][k],
+                featurized_audio["spectral_variance"][k],
+                featurized_audio["spectral_skewness"][k],
+                featurized_audio["spectral_kurtosis"][k]
             ))
             z = torch.isnan(element)
             if z.any():
@@ -199,5 +199,5 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
         x.append(torch.vstack(sequence))
 
         # The labels are just the next STFT frame
-        y.append(torch.hstack((featurized_audio["magnitude_spectrogram"][0, :, j], featurized_audio["phase_spectrogram"][0, :, j])))
+        y.append(torch.hstack((featurized_audio["magnitude_spectrogram"][:, j], featurized_audio["phase_spectrogram"][:, j])))
     return x, y
