@@ -171,11 +171,12 @@ def find_files(directory_name: str) -> list:
     return files_audio
 
 
-def read(file_name: str) -> AudioFile:
+def read(file_name: str, target_sample_rate: int = 44100) -> AudioFile:
     """
     Reads an audio file (AIFF or WAV) and returns an AudioFile object containing the contents of the
     file. It uses pedalboard for speed.
     :param file_name: The name of the file
+    :param target_sample_rate: The target sample rate (audio will be resampled)
     :return: An AudioFile
     """
     audio = None
@@ -183,7 +184,7 @@ def read(file_name: str) -> AudioFile:
         audio = _read_aiff(file_name, True)
     elif re.search(r'\.wav$', file_name):
         audio = _read_wav(file_name, True)
-    with pb.io.AudioFile(file_name, 'r') as infile:
+    with pb.io.AudioFile(file_name, 'r').resampled_to(target_sample_rate) as infile:
         audio.samples = infile.read(infile.frames)
     return audio
 

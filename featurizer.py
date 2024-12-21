@@ -6,6 +6,8 @@ and for postprocessing generated data. It also has a dataset class for storing
 sequences.
 """
 
+import aus_analyzer
+import aus_analyzer.aus_analyzer
 import caus.analysis as analysis
 import numpy as np
 import os
@@ -13,10 +15,7 @@ import torch
 import torchaudio
 
 
-FFT_SIZE = 1024
-NUM_MELS = FFT_SIZE // 16
-NUM_FEATURES = FFT_SIZE + 2 + 10
-
+NUM_ADDITIONAL_FEATURES = 12
 
 class RobustScaler:
     def __init__(self, median, iqr):
@@ -32,15 +31,16 @@ class RobustScaler:
         return (data - self.median) / self.iqr
         
 
-def featurize(audio: dict):
+def featurize(audio: dict, fft_size: 1024):
     """
     Adds additional feature information to an audio file dictionary.
     The additional information includes the STFT spectrogram and spectral features.
     :param audio: The audio file dictionary to featurize
+    :param fft_size: The FFT size
     """
     # Get the STFT data from the audio file and add it to the audio file dictionary
-    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=FFT_SIZE, power=None, normalized=True)
-    melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=FFT_SIZE // 2 + 1)
+    spectrogram_transform = torchaudio.transforms.Spectrogram(n_fft=fft_size, power=None, normalized=True)
+    # melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, audio["sample_rate"], n_stft=fft_size // 2 + 1)
     complex_out = spectrogram_transform(audio["audio"])
     audio["magnitude_spectrogram"] = torch.sqrt(torch.square(torch.real(complex_out)) + torch.square(torch.imag(complex_out))).numpy()
     audio["phase_spectrogram"] = torch.atan2(torch.imag(complex_out), torch.real(complex_out)).numpy()
@@ -49,24 +49,24 @@ def featurize(audio: dict):
     audio["num_spectrogram_frames"] = audio["power_spectrogram"].shape[-1]
     
     # Analyze the audio file
-    analysis.analyzer(audio, FFT_SIZE)
-    audio["magnitude_spectrogram"] = torch.from_numpy(audio["magnitude_spectrogram"])
-    audio["phase_spectrogram"] = torch.from_numpy(audio["phase_spectrogram"])
-    audio["power_spectrogram"] = torch.from_numpy(audio["power_spectrogram"])
-    audio["spectral_centroid"] = torch.from_numpy(audio["spectral_centroid"])
-    audio["spectral_variance"] = torch.from_numpy(audio["spectral_variance"])
-    audio["spectral_skewness"] = torch.from_numpy(audio["spectral_skewness"])
-    audio["spectral_kurtosis"] = torch.from_numpy(audio["spectral_kurtosis"])
-    audio["spectral_entropy"] = torch.from_numpy(audio["spectral_entropy"])
-    audio["spectral_flatness"] = torch.from_numpy(audio["spectral_flatness"])
-    audio["spectral_roll_off_0.5"] = torch.from_numpy(audio["spectral_roll_off_0.5"])
-    audio["spectral_roll_off_0.75"] = torch.from_numpy(audio["spectral_roll_off_0.75"])
-    audio["spectral_roll_off_0.9"] = torch.from_numpy(audio["spectral_roll_off_0.9"])
-    audio["spectral_roll_off_0.95"] = torch.from_numpy(audio["spectral_roll_off_0.95"])
-    audio["spectral_slope"] = torch.from_numpy(audio["spectral_slope"])
-    audio["spectral_slope_0:1kHz"] = torch.from_numpy(audio["spectral_slope_0:1kHz"])
-    audio["spectral_slope_1:5kHz"] = torch.from_numpy(audio["spectral_slope_1:5kHz"])
-    audio["spectral_slope_0:5kHz"] = torch.from_numpy(audio["spectral_slope_0:5kHz"])
+    audio.update(aus_analyzer.analyze(audio["path"], fft_size, 8))
+    audio["magnitude_spectrogram"] = torch.from_numpy(audio["magnitude_spectrogram"]).to(torch.float32)
+    audio["phase_spectrogram"] = torch.from_numpy(audio["phase_spectrogram"]).to(torch.float32)
+    audio["power_spectrogram"] = torch.from_numpy(audio["power_spectrogram"]).to(torch.float32)
+    audio["spectral_centroid"] = torch.from_numpy(audio["spectral_centroid"]).to(torch.float32)
+    audio["spectral_variance"] = torch.from_numpy(audio["spectral_variance"]).to(torch.float32)
+    audio["spectral_skewness"] = torch.from_numpy(audio["spectral_skewness"]).to(torch.float32)
+    audio["spectral_kurtosis"] = torch.from_numpy(audio["spectral_kurtosis"]).to(torch.float32)
+    audio["spectral_entropy"] = torch.from_numpy(audio["spectral_entropy"]).to(torch.float32)
+    audio["spectral_flatness"] = torch.from_numpy(audio["spectral_flatness"]).to(torch.float32)
+    audio["spectral_roll_off_50"] = torch.from_numpy(audio["spectral_roll_off_50"]).to(torch.float32)
+    audio["spectral_roll_off_75"] = torch.from_numpy(audio["spectral_roll_off_75"]).to(torch.float32)
+    audio["spectral_roll_off_90"] = torch.from_numpy(audio["spectral_roll_off_90"]).to(torch.float32)
+    audio["spectral_roll_off_95"] = torch.from_numpy(audio["spectral_roll_off_95"]).to(torch.float32)
+    audio["spectral_slope"] = torch.from_numpy(audio["spectral_slope"]).to(torch.float32)
+    audio["spectral_slope_0_1_khz"] = torch.from_numpy(audio["spectral_slope_0_1_khz"]).to(torch.float32)
+    audio["spectral_slope_1_5_khz"] = torch.from_numpy(audio["spectral_slope_1_5_khz"]).to(torch.float32)
+    audio["spectral_slope_0_5_khz"] = torch.from_numpy(audio["spectral_slope_0_5_khz"]).to(torch.float32)
 
 
 def load_audio_file(file_name: str) -> dict:
@@ -108,16 +108,17 @@ def prepare_robust_scaler(tensor_list):
     return np.median(new_np_arr), np.percentile(new_np_arr, 75) - np.percentile(new_np_arr, 25)
 
 
-def make_feature_frame(fft_mags, fft_phases, sample_rate):
+def make_feature_frame(fft_mags, fft_phases, sample_rate, fft_size):
     """
     Makes a feature dictionary for a FFT frame. This is needed if we have
     predicted a FFT frame and need to produce features for it.
     :param fft_mags: The FFT magnitude spectrum
     :param fft_phases: The FFT phase spectrum
     :param sample_rate: The sample rate
+    :param fft_size: The FFT size
     :return: The feature dictionary
     """
-    melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, sample_rate, n_stft=FFT_SIZE // 2 + 1)
+    # melscale_transform = torchaudio.transforms.MelScale(NUM_MELS, sample_rate, n_stft=fft_size // 2 + 1)
     vector = {
         "magnitude_spectrogram": torch.reshape(fft_mags, (1, fft_mags.shape[-1], 1)),
         "phase_spectrogram": torch.reshape(fft_phases, (1, fft_phases.shape[-1], 1)),
@@ -127,7 +128,7 @@ def make_feature_frame(fft_mags, fft_phases, sample_rate):
     vector["power_spectrogram"] = torch.square(vector["magnitude_spectrogram"])
     # vector["melscale_spectrogram"] = melscale_transform(vector["power_spectrogram"])
     vector["num_spectrogram_frames"] = 1
-    analysis.analyzer(vector, FFT_SIZE)
+    analysis.analyzer(vector, fft_size)
     del vector["power_spectrogram"]
     return vector
 
@@ -148,14 +149,17 @@ def make_feature_matrix(feature_dict):
             feature_dict["spectral_centroid"][i],
             feature_dict["spectral_entropy"][i],
             feature_dict["spectral_flatness"][i],
-            feature_dict["spectral_roll_off_0.5"][i],
-            feature_dict["spectral_roll_off_0.75"][i],
-            feature_dict["spectral_roll_off_0.9"][i],
-            feature_dict["spectral_roll_off_0.95"][i],
+            feature_dict["spectral_roll_off_50"][i],
+            feature_dict["spectral_roll_off_75"][i],
+            feature_dict["spectral_roll_off_90"][i],
+            feature_dict["spectral_roll_off_95"][i],
             feature_dict["spectral_variance"][i],
             feature_dict["spectral_skewness"][i],
             feature_dict["spectral_kurtosis"][i]
         ))
+        # If the FFT is run on a zero vector, the spectral centroid is NaN because of division by 0.
+        # Therefore, other features will also be NaN. So we need to simply override these and set them to 0.
+        element = torch.nan_to_num(element)
         sequence.append(element)
     sequence = torch.vstack(sequence)
     return torch.reshape(sequence, (feature_dict["num_spectrogram_frames"],) + sequence.shape)
@@ -184,20 +188,18 @@ def make_n_gram_sequences(featurized_audio, n) -> list:
                 featurized_audio["spectral_centroid"][k],
                 featurized_audio["spectral_entropy"][k],
                 featurized_audio["spectral_flatness"][k],
-                featurized_audio["spectral_roll_off_0.5"][k],
-                featurized_audio["spectral_roll_off_0.75"][k],
-                featurized_audio["spectral_roll_off_0.9"][k],
-                featurized_audio["spectral_roll_off_0.95"][k],
+                featurized_audio["spectral_roll_off_50"][k],
+                featurized_audio["spectral_roll_off_75"][k],
+                featurized_audio["spectral_roll_off_90"][k],
+                featurized_audio["spectral_roll_off_95"][k],
                 featurized_audio["spectral_variance"][k],
                 featurized_audio["spectral_skewness"][k],
                 featurized_audio["spectral_kurtosis"][k]
             ))
-            z = torch.isnan(element)
-            if z.any():
-                print(f"NaN found at {torch.nonzero(z)}")
-            sequence.append(element)
+            # If the FFT is run on a zero vector, the spectral centroid is NaN because of division by 0.
+            # Therefore, other features will also be NaN. So we need to simply override these and set them to 0.
+            sequence.append(torch.nan_to_num(element))
         x.append(torch.vstack(sequence))
-
         # The labels are just the next STFT frame
         y.append(torch.hstack((featurized_audio["magnitude_spectrogram"][:, j], featurized_audio["phase_spectrogram"][:, j])))
     return x, y

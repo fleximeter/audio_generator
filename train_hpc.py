@@ -152,6 +152,7 @@ if __name__ == "__main__":
     NUM_DATALOADER_WORKERS = 4                               # The number of workers for the dataloader
     PRINT_UPDATE_INTERVAL = 10                               # The epoch interval for printing training status
     MODEL_SAVE_INTERVAL = 20                                 # The epoch interval for saving the model
+    FFT_SIZE = 512
     model_metadata = None
     
     # The model metadata - load it from file if it exists already
@@ -164,8 +165,9 @@ if __name__ == "__main__":
             "hidden_size": 256,
             "batch_size": 500,
             "state_dict": os.path.join(ROOT_PATH, f"data/audio_sequencer{MODEL_SUFFIX}.pth"),
-            "num_features": featurizer.NUM_FEATURES,
-            "output_size": featurizer.FFT_SIZE + 2,
+            "num_features": featurizer.NUM_ADDITIONAL_FEATURES + FFT_SIZE + 2,
+            "fft_size": FFT_SIZE,
+            "output_size": FFT_SIZE + 2,
             "loss": None,
             "median": None,
             "iqr": None
@@ -180,7 +182,7 @@ if __name__ == "__main__":
 
     # Load the dataset
     print("Loading dataset...")
-    sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], 
+    sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], model_metadata["fft_size"],
                                             model_metadata["median"], model_metadata["iqr"])
     dataloader = DataLoader(sequence_dataset, model_metadata["batch_size"], True, 
                             num_workers=NUM_DATALOADER_WORKERS)

@@ -22,16 +22,18 @@ class AudioDataset(Dataset):
     vary, it is necessary to provide a collate function to the DataLoader, and a
     collate function is provided as a static function in this class.
     """
-    def __init__(self, directory, sequence_length, mean=None, iqr=None) -> None:
+    def __init__(self, directory, sequence_length, fft_size, mean=None, iqr=None) -> None:
         """
         Makes an AudioDataset
         :param directory: A list of NumPy audio arrays to turn into a dataset
         :param sequence_length: The sequence length
+        :param fft_size: The FFT size for the dataset
         :param mean: The mean for Robust Scaling. If None, will be computed.
         :param iqr: The IQR for Robust Scaling. If None, will be computed.
         """
         super(AudioDataset, self).__init__()
         self.sequence_length = sequence_length
+        self.fft_size = fft_size
         self.mean = mean
         self.iqr = iqr
         self.data, self.labels = self._load_data(directory)
@@ -68,7 +70,7 @@ class AudioDataset(Dataset):
         # Featurize each audio file dictionary
         ds_list = []
         for audio in audio_corpus:
-            featurizer.featurize(audio)
+            featurizer.featurize(audio, self.fft_size)
             for key, val in audio.items():
                 if type(val) == torch.Tensor:
                     ds_list.append(val)

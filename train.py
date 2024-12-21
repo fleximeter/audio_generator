@@ -11,22 +11,13 @@ import datetime
 import json
 import featurizer
 import model_definition
+import os
 from pathlib import Path
 import torch
 import torch.distributed
-import torch.multiprocessing as mp
 import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel
 import torch.optim as optim
 from torch.utils.data import DataLoader
-
-
-def setup_parallel(rank, world_size):
-    torch.distributed.init_process_group("nccl", rank=rank, world_size=world_size)
-
-
-def cleanup():
-    torch.distributed.destroy_process_group()
 
 
 def train_sequences(model, dataloader, loss_fn, optimizer, num_epochs, status_interval, 
@@ -140,15 +131,17 @@ if __name__ == "__main__":
     # You may want to edit the details below (for example, to specify file names)
     ###############################################################################
 
-    MODEL_SUFFIX = "_8_13_24"                     # The suffix for the current model
-    TRAINING_PATH = "data/train"                  # The path to the training corpus
-    FILE_NAME = f"data/model{MODEL_SUFFIX}.json"  # The path to the model metadata JSON file
-    RETRAIN = False                               # Whether or not to continue training the same model
-    NUM_EPOCHS = 5000                             # The number of epochs to train
-    LEARNING_RATE = 0.001                         # The model learning rate
-    NUM_DATALOADER_WORKERS = 4                    # The number of workers for the dataloader
-    PRINT_UPDATE_INTERVAL = 10                    # The epoch interval for printing training status
-    MODEL_SAVE_INTERVAL = 20                      # The epoch interval for saving the model
+    MODEL_SUFFIX = "_12_15_24"                                # The suffix for the current model
+    ROOT_PATH = "D:/Source/audio_generator"    # The root path for this repository
+    TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
+    FILE_NAME = os.path.join(ROOT_PATH, f"data/model{MODEL_SUFFIX}.json")  # The path to the model metadata JSON file
+    RETRAIN = False                                          # Whether or not to continue training the same model
+    NUM_EPOCHS = 200                                         # The number of epochs to train
+    LEARNING_RATE = 0.001                                    # The model learning rate
+    NUM_DATALOADER_WORKERS = 8                               # The number of workers for the dataloader
+    PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
+    MODEL_SAVE_INTERVAL = 20                                 # The epoch interval for saving the model
+    FFT_SIZE = 512
     model_metadata = None
     
     # The model metadata - load it from file if it exists already
@@ -157,12 +150,13 @@ if __name__ == "__main__":
             "model_name": "audio",
             "path": FILE_NAME,
             "training_sequence_length": 10,
-            "num_layers": 2,
-            "hidden_size": 256,
-            "batch_size": 500,
-            "state_dict": f"data/audio_sequencer{MODEL_SUFFIX}.pth",
-            "num_features": featurizer.NUM_FEATURES,
-            "output_size": featurizer.FFT_SIZE + 2,
+            "num_layers": 4,
+            "hidden_size": 512,
+            "batch_size": 50,
+            "state_dict": os.path.join(ROOT_PATH, f"data/audio_sequencer{MODEL_SUFFIX}.pth"),
+            "num_features": featurizer.NUM_ADDITIONAL_FEATURES + FFT_SIZE,
+            "fft_size": FFT_SIZE,
+            "output_size": FFT_SIZE + 2,
             "loss": None,
             "median": None,
             "iqr": None
@@ -170,6 +164,7 @@ if __name__ == "__main__":
     else:
         with open(FILE_NAME, "r") as model_json_file:
             model_metadata = json.loads(model_json_file.read())
+
     
     ###############################################################################
     # You shouldn't need to edit anything below here.
@@ -177,7 +172,7 @@ if __name__ == "__main__":
     
     # Load the dataset
     print("Loading dataset...")
-    sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], 
+    sequence_dataset = dataset.AudioDataset(TRAINING_PATH, model_metadata["training_sequence_length"], model_metadata["fft_size"],
                                             model_metadata["median"], model_metadata["iqr"])
     dataloader = DataLoader(sequence_dataset, model_metadata["batch_size"], True, 
                             num_workers=NUM_DATALOADER_WORKERS)
