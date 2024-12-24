@@ -154,7 +154,7 @@ if __name__ == "__main__":
             "hidden_size": 512,
             "batch_size": 50,
             "state_dict": os.path.join(ROOT_PATH, f"data/audio_sequencer{MODEL_SUFFIX}.pth"),
-            "num_features": featurizer.NUM_ADDITIONAL_FEATURES + FFT_SIZE,
+            "num_features": featurizer.NUM_ADDITIONAL_FEATURES + FFT_SIZE + 2,
             "fft_size": FFT_SIZE,
             "output_size": FFT_SIZE + 2,
             "loss": None,

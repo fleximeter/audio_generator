@@ -8,11 +8,11 @@ The default training device is CUDA, and MPS is the first fallback, with a CPU a
 
 ## Setup
 You will need to install the following packages to use this repository:
-`Cython`, `numpy`, `torch`, `torchaudio`, `regex`, and `soundfile`.
+`aus_analyzer`, `numpy`, `pedalboard`, `torch`, `torchaudio`, `regex`, and `soundfile`.
 
 Visit https://pytorch.org/get-started/locally/ for PyTorch installation instructions (this is a good idea if you want to use CUDA).
 
-You will also need to compile the Cython code in the `caus` directory. Run the command `python setup.py build_ext --inplace`.
+The `aus_analyzer` package needs to be compiled separately using `maturin`. Contact the developer of this repository for details.
 
 ## Training a model
 Install the dependencies listed above, and compile the Cython code, then follow these steps:
@@ -33,6 +33,3 @@ Install the dependencies listed above, and compile the Cython code, then follow 
 `train.py` - Contains functionality for training models.
 
 `train_hpc.py` - A modified version of `train.py` for running on the University of Iowa Argon high-performance computing system.
-
-## Other notes
-The `caudiopython` modules are included in this repo because of compatibility issues with building Cython packages on the Argon HPC system at the University of Iowa.
