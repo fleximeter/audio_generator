@@ -131,14 +131,14 @@ if __name__ == "__main__":
     # You may want to edit the details below (for example, to specify file names)
     ###############################################################################
 
-    MODEL_SUFFIX = "_12_15_24"                                # The suffix for the current model
+    MODEL_SUFFIX = "_12_24_24"                                # The suffix for the current model
     ROOT_PATH = "D:/Source/audio_generator"    # The root path for this repository
     TRAINING_PATH = os.path.join(ROOT_PATH, "data/train")    # The path to the training corpus
     FILE_NAME = os.path.join(ROOT_PATH, f"data/model{MODEL_SUFFIX}.json")  # The path to the model metadata JSON file
     RETRAIN = False                                          # Whether or not to continue training the same model
-    NUM_EPOCHS = 200                                         # The number of epochs to train
+    NUM_EPOCHS = 300                                         # The number of epochs to train
     LEARNING_RATE = 0.001                                    # The model learning rate
-    NUM_DATALOADER_WORKERS = 8                               # The number of workers for the dataloader
+    NUM_DATALOADER_WORKERS = 8                              # The number of workers for the dataloader
     PRINT_UPDATE_INTERVAL = 1                                # The epoch interval for printing training status
     MODEL_SAVE_INTERVAL = 20                                 # The epoch interval for saving the model
     FFT_SIZE = 512
@@ -152,7 +152,7 @@ if __name__ == "__main__":
             "training_sequence_length": 10,
             "num_layers": 4,
             "hidden_size": 512,
-            "batch_size": 50,
+            "batch_size": 75,
             "state_dict": os.path.join(ROOT_PATH, f"data/audio_sequencer{MODEL_SUFFIX}.pth"),
             "num_features": featurizer.NUM_ADDITIONAL_FEATURES + FFT_SIZE + 2,
             "fft_size": FFT_SIZE,

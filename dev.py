@@ -1,13 +1,12 @@
-import corpus
 import featurizer
+import dataset
 import torch
 
-ds = corpus.load_audio("data/train")
-ds_list = []
-for file in ds:
-    featurizer.featurize(file)
-    for key, val in file.items():
-        if type(val) == torch.Tensor:
-            ds_list.append(val)
-
-scaler = featurizer.RobustScaler(*featurizer.prepare_robust_scaler(ds_list))
+ds = dataset.AudioDataset("data/train", 10, 1024)
+dl = torch.utils.data.DataLoader(ds, 10, True)
+i = 0
+for X, y in dl:
+    if i == 0:
+        print(type(X))
+        print(X.shape)
+    i += 1
